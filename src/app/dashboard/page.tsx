@@ -12,7 +12,7 @@ export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [rounds, setRounds] = useState<number>(0);
-  const [roundMeters, setRoundMeters] = useState<number>(50);
+  const [roundMeters, setRoundMeters] = useState<number>(27);
   const [loading, setLoading] = useState(false);
   const [configLoading, setConfigLoading] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -32,11 +32,11 @@ export default function Dashboard() {
     try {
       setConfigLoading(true);
       // 根据API文档，后端没有配置接口，使用默认值
-      setRoundMeters(50);
+      setRoundMeters(27);
     } catch (error) {
       console.error('获取配置失败:', error);
       // 使用默认值
-      setRoundMeters(50);
+      setRoundMeters(27);
     } finally {
       setConfigLoading(false);
     }
@@ -46,6 +46,11 @@ export default function Dashboard() {
     e.preventDefault();
     if (rounds <= 0) {
       setMessage({ type: 'error', text: '请输入有效的回合数' });
+      return;
+    }
+
+    if (roundMeters <= 0) {
+      setMessage({ type: 'error', text: '请输入有效的回合长度' });
       return;
     }
 
@@ -122,14 +127,18 @@ export default function Dashboard() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              一个回合长度
+            <label htmlFor="roundMeters" className="block text-sm font-medium text-gray-700 mb-2">
+              一个回合长度（米）
             </label>
             <input
-              type="text"
-              value={`${roundMeters} 米`}
-              readOnly
-              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600"
+              type="number"
+              id="roundMeters"
+              min="1"
+              value={roundMeters || ''}
+              onChange={(e) => setRoundMeters(parseInt(e.target.value) || 27)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="请输入回合长度"
+              required
             />
           </div>
 
@@ -147,7 +156,7 @@ export default function Dashboard() {
 
           <button
             type="submit"
-            disabled={loading || rounds <= 0}
+            disabled={loading || rounds <= 0 || roundMeters <= 0}
             className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-md transition duration-200"
           >
             {loading ? '打卡中...' : '打卡'}
