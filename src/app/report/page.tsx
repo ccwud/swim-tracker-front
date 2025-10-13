@@ -27,7 +27,7 @@ export default function Report() {
       router.push('/login');
       return;
     }
-  }, [user, loading, router]);
+  }, [user, authLoading, router]);
 
   const fetchReport = async () => {
     setLoading(true);

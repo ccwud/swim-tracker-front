@@ -22,6 +22,14 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    
+    // Fix for debugRuntimeClasspathCopy configuration issue
+    configurations {
+        debugRuntimeClasspathCopy {
+            canBeConsumed = false
+            canBeResolved = true
+        }
+    }
 }
 
 repositories {
@@ -51,4 +59,16 @@ try {
     }
 } catch(Exception e) {
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}
+
+// =========================================================
+//  FIX for 'debugRuntimeClasspathCopy' configuration error
+// =========================================================
+project.configurations.matching {
+    it.name.endsWith("RuntimeClasspathCopy")
+}.all { config ->
+    config.attributes {
+        it.attribute(Attribute.of("org.gradle.libraryelements", String), "classes")
+    }
+    config.setCanBeConsumed(false)
 }
