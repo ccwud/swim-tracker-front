@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/api'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.sol-aqua.top/api'
 
 // 创建 axios 实例  111 
 export const apiClient = axios.create({
@@ -50,17 +50,29 @@ apiClient.interceptors.response.use(
 
 // 认证相关 API
 export const authAPI = {
-  // 用户登录
+  // 登录
   login: (credentials: { username: string; password: string }) =>
     apiClient.post('/auth/login', credentials),
   
-  // 用户注册
+  // 注册
   register: (userData: { username: string; password: string; email: string }) =>
     apiClient.post('/auth/register', userData),
   
-  // Token 验证
+  // 验证token
   validate: () =>
     apiClient.post('/auth/validate'),
+  
+  // 忘记密码 - 发起密码重置
+  forgotPassword: (email: string) =>
+    apiClient.post('/auth/forgot-password', { email }),
+  
+  // 验证重置令牌
+  validateResetToken: (token: string) =>
+    apiClient.get(`/auth/validate-reset-token?token=${token}`),
+  
+  // 重置密码
+  resetPassword: (token: string, newPassword: string) =>
+    apiClient.post('/auth/reset-password', { token, newPassword }),
 }
 
 // 游泳记录管理 API
@@ -106,17 +118,20 @@ export const api = {
   login: authAPI.login,
   register: authAPI.register,
   validateToken: authAPI.validate,
+  forgotPassword: authAPI.forgotPassword,
+  validateResetToken: authAPI.validateResetToken,
+  resetPassword: authAPI.resetPassword,
   
-  // 游泳记录
+  // 游泳记录相关
   punchIn: swimmingAPI.punchIn,
   getRecords: swimmingAPI.getRecords,
   getRecordsByRange: swimmingAPI.getRecordsByRange,
   getTodayRecord: swimmingAPI.getTodayRecord,
   
-  // 统计报告
+  // 报告相关
   getMonthlyStats: reportsAPI.getMonthlyStats,
   getWeeklyStats: reportsAPI.getWeeklyStats,
   
-  // 系统
+  // 系统相关
   healthCheck: systemAPI.healthCheck,
 }

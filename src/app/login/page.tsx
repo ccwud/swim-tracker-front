@@ -100,6 +100,15 @@ export default function LoginPage() {
               没有账号？去注册
             </Link>
           </div>
+          
+          <div className="text-center">
+            <Link
+              href="/forgot-password"
+              className="font-medium text-blue-600 hover:text-blue-500"
+            >
+              忘记密码？
+            </Link>
+          </div>
         </form>
       </div>
     </div>
