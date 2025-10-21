@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { api } from '@/lib/api'
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const [token, setToken] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -35,10 +35,15 @@ export default function ResetPasswordPage() {
       await api.validateResetToken(tokenToValidate)
       setIsValidToken(true)
       setMessage('')
-    } catch (error: any) {
+    } catch (error: unknown) {
       setIsValidToken(false)
-      if (error.response?.status === 400) {
-        setMessage('重置链接无效或已过期，请重新申请密码重置')
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { status: number } }
+        if (axiosError.response?.status === 400) {
+          setMessage('重置链接无效或已过期，请重新申请密码重置')
+        } else {
+          setMessage('验证失败，请稍后重试')
+        }
       } else {
         setMessage('验证失败，请稍后重试')
       }
@@ -72,19 +77,24 @@ export default function ResetPasswordPage() {
       setTimeout(() => {
         router.push('/login')
       }, 3000)
-    } catch (error: any) {
-      if (error.response?.status === 400) {
-        const errorMessage = error.response.data
-        if (typeof errorMessage === 'string') {
-          if (errorMessage.includes('无效')) {
-            setMessage('重置链接无效')
-          } else if (errorMessage.includes('过期')) {
-            setMessage('重置链接已过期，请重新申请')
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { status: number; data?: unknown } }
+        if (axiosError.response?.status === 400) {
+          const errorMessage = axiosError.response.data
+          if (typeof errorMessage === 'string') {
+            if (errorMessage.includes('无效')) {
+              setMessage('重置链接无效')
+            } else if (errorMessage.includes('过期')) {
+              setMessage('重置链接已过期，请重新申请')
+            } else {
+              setMessage('密码重置失败，请稍后重试')
+            }
           } else {
             setMessage('密码重置失败，请稍后重试')
           }
         } else {
-          setMessage('密码重置失败，请稍后重试')
+          setMessage('网络错误，请检查网络连接后重试')
         }
       } else {
         setMessage('网络错误，请检查网络连接后重试')
@@ -249,5 +259,20 @@ export default function ResetPasswordPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">加载中...</p>
+        </div>
+      </div>
+    }>
+      <ResetPasswordForm />
+    </Suspense>
   )
 }

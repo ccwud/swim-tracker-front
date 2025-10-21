@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
-import { ReportData, WeeklyReport, MonthlyReport, SwimmingRecord } from '@/types';
+import { ReportData, WeeklyReport, MonthlyReport, SwimmingRecord, ReportRecord } from '@/types';
 import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorMessage from '@/components/ErrorMessage';
@@ -48,9 +48,9 @@ export default function Report() {
       // 根据API文档，直接使用响应数据
       if (reportType === 'all') {
         // 对于全部记录，构造统计数据
-        const records = response.data;
+        const records = response.data as SwimmingRecord[];
         const totalSessions = records.length;
-        const totalMeters = records.reduce((sum: number, record: any) => sum + record.distanceMeters, 0);
+        const totalMeters = records.reduce((sum: number, record: SwimmingRecord) => sum + record.distanceMeters, 0);
         const averageMetersPerSession = totalSessions > 0 ? Math.round(totalMeters / totalSessions) : 0;
         
         setReportData({
@@ -60,7 +60,7 @@ export default function Report() {
             totalMeters,
             averageMetersPerSession
           },
-          records: records.map((record: any) => ({
+          records: records.map((record: SwimmingRecord) => ({
             date: new Date(record.recordDate || record.createdAt).toLocaleDateString('zh-CN'),
             rounds: record.rounds,
             meters: record.distanceMeters
@@ -68,9 +68,17 @@ export default function Report() {
         });
       } else {
         // 对于周报告和月报告，使用统计数据
-        const stats = Array.isArray(response.data) ? response.data : [response.data];
-        const totalSessions = stats.reduce((sum: number, stat: any) => sum + (stat.totalRecords || 0), 0);
-        const totalMeters = stats.reduce((sum: number, stat: any) => sum + (stat.totalDistance || 0), 0);
+        interface StatData {
+          totalRecords?: number;
+          totalDistance?: number;
+          year?: number;
+          week?: number;
+          month?: number;
+        }
+        
+        const stats = Array.isArray(response.data) ? response.data as StatData[] : [response.data as StatData];
+        const totalSessions = stats.reduce((sum: number, stat: StatData) => sum + (stat.totalRecords || 0), 0);
+        const totalMeters = stats.reduce((sum: number, stat: StatData) => sum + (stat.totalDistance || 0), 0);
         const averageMetersPerSession = totalSessions > 0 ? Math.round(totalMeters / totalSessions) : 0;
         
         setReportData({
@@ -81,14 +89,14 @@ export default function Report() {
             averageMetersPerSession
           },
           records: [],
-          weeklyReports: reportType === 'weekly' ? stats.map((stat: any) => ({
+          weeklyReports: reportType === 'weekly' ? stats.map((stat: StatData) => ({
             week: `${stat.year}年第${stat.week}周`,
             weekStart: '',
             weekEnd: '',
             sessions: stat.totalRecords || 0,
             totalMeters: stat.totalDistance || 0
           })) : [],
-          monthlyReports: reportType === 'monthly' ? stats.map((stat: any) => ({
+          monthlyReports: reportType === 'monthly' ? stats.map((stat: StatData) => ({
             month: `${stat.year}年${stat.month}月`,
             year: stat.year?.toString(),
             sessions: stat.totalRecords || 0,
@@ -96,19 +104,26 @@ export default function Report() {
           })) : []
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('获取报告失败:', error);
       let errorMessage = '获取报告失败，请重试';
       
-      if (error.response) {
-        // 服务器响应了错误状态码
-        errorMessage = error.response.data?.message || error.response.data || errorMessage;
-      } else if (error.request) {
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { data?: { message?: string } | string } };
+        if (axiosError.response) {
+          const responseData = axiosError.response.data;
+          if (typeof responseData === 'string') {
+            errorMessage = responseData;
+          } else if (responseData && typeof responseData === 'object' && 'message' in responseData) {
+            errorMessage = responseData.message || errorMessage;
+          }
+        }
+      } else if (error && typeof error === 'object' && 'request' in error) {
         // 请求已发出但没有收到响应
         errorMessage = '网络连接失败，请检查网络连接';
       } else {
         // 其他错误
-        errorMessage = error.message || errorMessage;
+        errorMessage = (error as Error)?.message || errorMessage;
       }
       
       setError(errorMessage);
@@ -239,7 +254,7 @@ export default function Report() {
     );
   };
 
-  const renderAllRecords = (records: SwimmingRecord[]) => {
+  const renderAllRecords = (records: ReportRecord[]) => {
     if (records.length === 0) {
       return <p className="text-gray-500 text-center py-8">暂无打卡记录</p>;
     }

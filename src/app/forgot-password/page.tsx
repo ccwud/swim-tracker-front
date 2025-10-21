@@ -16,12 +16,17 @@ export default function ForgotPasswordPage() {
     setMessage('')
 
     try {
-      const response = await api.forgotPassword(email)
+      await api.forgotPassword(email)
       setMessage('如果该邮箱存在，重置密码邮件已发送')
       setIsSuccess(true)
-    } catch (error: any) {
-      if (error.response?.status === 400) {
-        setMessage('发送重置邮件失败，请稍后重试')
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { status: number } }
+        if (axiosError.response?.status === 400) {
+          setMessage('发送重置邮件失败，请稍后重试')
+        } else {
+          setMessage('网络错误，请检查网络连接后重试')
+        }
       } else {
         setMessage('网络错误，请检查网络连接后重试')
       }

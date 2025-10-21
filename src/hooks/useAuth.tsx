@@ -30,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const user = JSON.parse(userData);
           setUser(user);
         } catch (error) {
+          console.error('Token validation error:', error);
           localStorage.removeItem('jwt_token');
           localStorage.removeItem('user');
           setUser(null);

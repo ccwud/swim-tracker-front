@@ -21,8 +21,9 @@ export interface SwimmingRecord {
   id: string
   userId: string
   date: string
+  recordDate?: string
   rounds: number
-  meters: number
+  distanceMeters: number
   createdAt: string
 }
 
@@ -33,9 +34,15 @@ export interface PunchData {
 }
 
 // 报告相关类型
+export interface ReportRecord {
+  date: string
+  rounds: number
+  meters: number
+}
+
 export interface ReportData {
   interval: 'weekly' | 'monthly' | 'all'
-  records: SwimmingRecord[]
+  records: ReportRecord[]
   weeklyReports?: WeeklyReport[]
   monthlyReports?: MonthlyReport[]
   statistics: {
