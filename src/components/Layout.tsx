@@ -25,7 +25,12 @@ export default function Layout({ children, showNavigation = false }: LayoutProps
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between h-16">
               <div className="flex items-center">
-                <h1 className="text-xl font-semibold text-gray-900">游泳打卡系统</h1>
+                <button
+                  onClick={() => router.push('/choice')}
+                  className="text-xl font-semibold text-gray-900 hover:text-blue-600 cursor-pointer"
+                >
+                  多功能系统
+                </button>
               </div>
               <div className="flex items-center space-x-4">
                 <span className="text-sm text-gray-700">欢迎，{user.username}</span>
@@ -33,7 +38,13 @@ export default function Layout({ children, showNavigation = false }: LayoutProps
                   onClick={() => router.push('/dashboard')}
                   className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                 >
-                  打卡
+                  游泳打卡
+                </button>
+                <button
+                  onClick={() => router.push('/financial')}
+                  className="text-green-600 hover:text-green-800 text-sm font-medium"
+                >
+                  记账系统
                 </button>
                 <button
                   onClick={() => router.push('/report')}

@@ -22,7 +22,7 @@ export default function LoginPage() {
     try {
       const success = await login(username, password)
       if (success) {
-        router.push('/dashboard')
+        router.push('/choice')
       } else {
         setError('用户名或密码错误')
       }
@@ -41,7 +41,7 @@ export default function LoginPage() {
             登录您的账户
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            游泳打卡记录系统
+            Sol-Aqua
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
