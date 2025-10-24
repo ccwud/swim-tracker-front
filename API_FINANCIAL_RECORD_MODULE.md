@@ -63,7 +63,7 @@
 ```json
 {
   "id": 1,
-  "userId": 123,
+  "username": "alice",
   "amount": 150.50,
   "categoryId": 1,
   "categoryName": "餐饮",
@@ -124,7 +124,7 @@
 ```json
 {
   "id": 1,
-  "userId": 123,
+  "username": "alice",
   "amount": 150.50,
   "categoryId": 1,
   "categoryName": "餐饮",
@@ -156,7 +156,7 @@
   "content": [
     {
       "id": 1,
-      "userId": 123,
+      "username": "alice",
       "amount": 150.50,
       "categoryId": 1,
       "categoryName": "餐饮",
@@ -367,7 +367,7 @@ GET /api/financial-records/monthly-statistics?year=2024
 [
   {
     "id": 1,
-    "userId": 123,
+    "username": "alice",
     "amount": 150.50,
     "categoryId": 1,
     "categoryName": "餐饮",
@@ -426,7 +426,7 @@ GET /api/financial-records/monthly-statistics?year=2024
 ```json
 {
   "id": "Long - 记录ID",
-  "userId": "Long - 用户ID",
+  "username": "String - 用户名",
   "amount": "BigDecimal - 金额",
   "categoryId": "Long - 分类ID",
   "categoryName": "String - 分类名称",
@@ -439,24 +439,12 @@ GET /api/financial-records/monthly-statistics?year=2024
 }
 ```
 
-### FinancialRecordRequest (财务记录请求)
-
-```json
-{
-  "amount": "BigDecimal - 金额 (必填，必须大于0)",
-  "categoryId": "Long - 分类ID (必填)",
-  "description": "String - 描述 (可选，最大500字符)",
-  "recordDate": "LocalDate - 记录日期 (必填)",
-  "tags": "List<String> - 标签列表 (可选)"
-}
-```
-
 ### FinancialRecordResponse (财务记录响应)
 
 ```json
 {
   "id": "Long - 记录ID",
-  "userId": "Long - 用户ID",
+  "username": "String - 用户名",
   "amount": "BigDecimal - 金额",
   "categoryId": "Long - 分类ID",
   "categoryName": "String - 分类名称",
@@ -555,6 +543,7 @@ Authorization: Bearer {token}
 6. 标签功能可用于记录的分类和搜索
 7. 分页查询默认按记录日期倒序排列
 8. 统计接口支持日期范围过滤，不传日期则统计全部数据
+9. 不需要在请求中传 `username`，系统根据JWT中的用户名识别用户
 
 ---
 

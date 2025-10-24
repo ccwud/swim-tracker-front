@@ -63,7 +63,7 @@
 ```json
 {
   "id": 1,
-  "userId": 123,
+  "username": "alice",
   "name": "餐饮",
   "type": "EXPENSE",
   "description": "日常餐饮支出",
@@ -297,7 +297,7 @@
 ```json
 {
   "id": "Long - 分类ID",
-  "userId": "Long - 用户ID",
+  "username": "String - 用户名",
   "name": "String - 分类名称",
   "type": "CategoryType - 分类类型",
   "description": "String - 描述",
@@ -392,6 +392,7 @@ Content-Type: application/json
 5. 分类类型创建后不能修改
 6. 颜色代码建议使用十六进制格式，如：#FF5722
 7. 图标名称建议使用统一的图标库命名规范
+8. 不需要在请求中传 `username`，系统根据JWT中的用户名识别用户
 
 ---
 
