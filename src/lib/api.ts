@@ -29,17 +29,18 @@ apiClient.interceptors.request.use(
   }
 )
 
+// 在开发或设置了环境变量时，允许关闭401重定向
+const DISABLE_AUTH_REDIRECT = process.env.NEXT_PUBLIC_DISABLE_AUTH_REDIRECT === 'true'
+
 // 响应拦截器 - 处理认证错误
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token 过期或无效，清除本地存储并重定向到登录页
       if (typeof window !== 'undefined') {
         localStorage.removeItem('jwt_token')
         localStorage.removeItem('user')
-        // 只有在不是登录页面时才重定向
-        if (window.location.pathname !== '/login') {
+        if (!DISABLE_AUTH_REDIRECT && window.location.pathname !== '/login') {
           window.location.href = '/login'
         }
       }
@@ -112,6 +113,37 @@ export const systemAPI = {
     apiClient.get('/health'),
 }
 
+// 分类管理 API（对齐 API_CATEGORY_MODULE.md）
+export const categoriesAPI = {
+  list: () => apiClient.get('/categories'),
+  listByType: (type: 'INCOME' | 'EXPENSE') => apiClient.get(`/categories/type/${type}`),
+  income: () => apiClient.get('/categories/income'),
+  expense: () => apiClient.get('/categories/expense'),
+  get: (id: number) => apiClient.get(`/categories/${id}`),
+  create: (payload: { name: string; type: 'INCOME' | 'EXPENSE'; description?: string; iconName?: string; colorCode?: string }) => apiClient.post('/categories', payload),
+  update: (id: number, payload: { name: string; type: 'INCOME' | 'EXPENSE'; description?: string; iconName?: string; colorCode?: string }) => apiClient.put(`/categories/${id}`, payload),
+  remove: (id: number) => apiClient.delete(`/categories/${id}`),
+  count: () => apiClient.get('/categories/count'),
+  initialize: () => apiClient.post('/categories/initialize'),
+}
+
+// 财务记录管理 API（对齐 API_FINANCIAL_RECORD_MODULE.md）
+export const financialRecordsAPI = {
+  create: (payload: { amount: number; categoryId: number; description?: string; recordDate: string; tags?: string[] }) => apiClient.post('/financial-records', payload),
+  update: (id: number, payload: { amount: number; categoryId: number; description?: string; recordDate: string; tags?: string[] }) => apiClient.put(`/financial-records/${id}`, payload),
+  remove: (id: number) => apiClient.delete(`/financial-records/${id}`),
+  get: (id: number) => apiClient.get(`/financial-records/${id}`),
+  list: (params?: { page?: number; size?: number; sort?: string }) => apiClient.get('/financial-records', { params }),
+  getByDateRange: (startDate: string, endDate: string, params?: { page?: number; size?: number }) => apiClient.get('/financial-records/date-range', { params: { startDate, endDate, ...params } }),
+  getByCategory: (categoryId: number, params?: { page?: number; size?: number }) => apiClient.get(`/financial-records/category/${categoryId}`, { params }),
+  search: (keyword: string, params?: { page?: number; size?: number }) => apiClient.get('/financial-records/search', { params: { keyword, ...params } }),
+  statistics: (params?: { startDate?: string; endDate?: string }) => apiClient.get('/financial-records/statistics', { params }),
+  monthlyStatistics: (year: number) => apiClient.get('/financial-records/monthly-statistics', { params: { year } }),
+  categoryStatistics: (params?: { startDate?: string; endDate?: string }) => apiClient.get('/financial-records/category-statistics', { params }),
+  recent: (limit?: number) => apiClient.get('/financial-records/recent', { params: { limit } }),
+  batchImport: (records: Array<{ amount: number; categoryId: number; description?: string; recordDate: string; tags?: string[] }>) => apiClient.post('/financial-records/batch-import', records),
+}
+
 // 统一的 API 对象
 export const api = {
   // 认证相关
@@ -134,4 +166,10 @@ export const api = {
   
   // 系统相关
   healthCheck: systemAPI.healthCheck,
+
+  // 分类相关
+  categories: categoriesAPI,
+
+  // 财务记录相关
+  financialRecords: financialRecordsAPI,
 }

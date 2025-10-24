@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import { api } from '@/lib/api';
 
 interface Category {
   id: number;
@@ -27,105 +27,308 @@ interface FinancialRecord {
 }
 
 export default function FinancialPage() {
-  const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
+  const { loading: authLoading } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [records, setRecords] = useState<FinancialRecord[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [recordsLoading, setRecordsLoading] = useState(false);
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [statsLoading, setStatsLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // 表单状态
-  const [formData, setFormData] = useState({
+  // 筛选/搜索状态
+  const [filters, setFilters] = useState({
+    startDate: '',
+    endDate: '',
     categoryId: '',
-    amount: '',
-    recordDate: new Date().toISOString().split('T')[0],
-    description: '',
-    paymentMethod: '',
-    location: ''
+    type: 'ALL' as 'ALL' | 'INCOME' | 'EXPENSE',
+    keyword: ''
   });
+
+  // 统计状态
+  const [stats, setStats] = useState<{ income: number; expense: number; net: number }>({ income: 0, expense: 0, net: 0 });
+  const [monthlyStats, setMonthlyStats] = useState<Array<{ month: string; income: number; expense: number; net: number }>>([]);
+  const [categoryStats, setCategoryStats] = useState<Array<{ categoryId: number; categoryName: string; income: number; expense: number; net: number }>>([]);
 
   useEffect(() => {
     if (authLoading) return;
-    
-    if (!user) {
-      router.push('/login');
-      return;
-    }
-    
+    // 调试阶段不拦截登录，允许直接访问页面
     fetchCategories();
     fetchRecords();
-  }, [user, authLoading, router]);
+  }, [authLoading]);
+
+  const mapRecords = (data: any[]): FinancialRecord[] => {
+    return (data || []).map((r: any) => ({
+      id: Number(r.id ?? Date.now()),
+      categoryId: Number(r.categoryId ?? 0),
+      categoryName: r.categoryName ?? '',
+      categoryType: (r.categoryType ?? r.type ?? 'EXPENSE') as 'INCOME' | 'EXPENSE',
+      amount: Number(r.amount ?? 0),
+      recordDate: r.recordDate ?? r.date ?? new Date().toISOString().split('T')[0],
+      description: r.description ?? r.remark ?? '',
+      paymentMethod: r.paymentMethod ?? r.method ?? '',
+    }));
+  };
 
   const fetchCategories = async () => {
     try {
-      // 这里应该调用实际的API，暂时使用模拟数据
+      const resp = await api.categories.list();
+      const raw = resp.data;
+      const data = Array.isArray(raw) ? raw : raw?.data;
+      const list: Category[] = (data || []).map((c: any) => ({
+        id: Number(c.id ?? c.categoryId ?? 0),
+        name: c.name ?? c.categoryName ?? '',
+        type: (c.type ?? c.categoryType ?? 'EXPENSE') as 'INCOME' | 'EXPENSE',
+        iconName: c.iconName,
+        colorCode: c.colorCode,
+      }));
+      if (list.length === 0) {
+        const mockCategories: Category[] = [
+          { id: 1, name: '餐饮', type: 'EXPENSE', iconName: 'restaurant', colorCode: '#FF5722' },
+          { id: 2, name: '交通', type: 'EXPENSE', iconName: 'directions_car', colorCode: '#2196F3' },
+          { id: 5, name: '工资', type: 'INCOME', iconName: 'work', colorCode: '#FF9800' },
+        ];
+        setCategories(mockCategories);
+      } else {
+        setCategories(list);
+      }
+    } catch (error) {
       const mockCategories: Category[] = [
         { id: 1, name: '餐饮', type: 'EXPENSE', iconName: 'restaurant', colorCode: '#FF5722' },
         { id: 2, name: '交通', type: 'EXPENSE', iconName: 'directions_car', colorCode: '#2196F3' },
-        { id: 3, name: '购物', type: 'EXPENSE', iconName: 'shopping_cart', colorCode: '#4CAF50' },
-        { id: 4, name: '娱乐', type: 'EXPENSE', iconName: 'movie', colorCode: '#9C27B0' },
         { id: 5, name: '工资', type: 'INCOME', iconName: 'work', colorCode: '#FF9800' },
-        { id: 6, name: '奖金', type: 'INCOME', iconName: 'card_giftcard', colorCode: '#795548' }
       ];
       setCategories(mockCategories);
-    } catch (error) {
-      console.error('获取分类失败:', error);
-      setMessage({ type: 'error', text: '获取分类失败' });
+      setMessage({ type: 'error', text: '获取分类失败，已使用本地数据' });
+    }
+  };
+
+  const computeStatsFrom = (list: FinancialRecord[]) => {
+    const income = list.filter(r => r.categoryType === 'INCOME').reduce((s, r) => s + r.amount, 0);
+    const expense = list.filter(r => r.categoryType === 'EXPENSE').reduce((s, r) => s + r.amount, 0);
+    return { income, expense, net: income - expense };
+  };
+
+  const computeMonthlyStatsFrom = (list: FinancialRecord[]) => {
+    const map = new Map<string, { income: number; expense: number }>();
+    list.forEach(r => {
+      const month = (r.recordDate || '').slice(0, 7);
+      const v = map.get(month) || { income: 0, expense: 0 };
+      if (r.categoryType === 'INCOME') v.income += r.amount; else v.expense += r.amount;
+      map.set(month, v);
+    });
+    const result = Array.from(map.entries()).map(([month, v]) => ({ month, income: v.income, expense: v.expense, net: v.income - v.expense }))
+      .sort((a, b) => a.month < b.month ? 1 : -1)
+      .slice(0, 6);
+    return result;
+  };
+
+  const computeCategoryStatsFrom = (list: FinancialRecord[]) => {
+    const map = new Map<number, { name: string; income: number; expense: number }>();
+    list.forEach(r => {
+      const v = map.get(r.categoryId) || { name: r.categoryName, income: 0, expense: 0 };
+      if (r.categoryType === 'INCOME') v.income += r.amount; else v.expense += r.amount;
+      map.set(r.categoryId, v);
+    });
+    const result = Array.from(map.entries()).map(([categoryId, v]) => ({
+      categoryId,
+      categoryName: v.name,
+      income: v.income,
+      expense: v.expense,
+      net: v.income - v.expense,
+    })).sort((a, b) => (b.expense + b.income) - (a.expense + a.income)).slice(0, 8);
+    return result;
+  };
+
+  const loadStats = async (source?: FinancialRecord[]) => {
+    setStatsLoading(true);
+    try {
+      // 总览统计
+      try {
+        const resp = await api.financialRecords.statistics();
+        const d = resp.data?.data ?? resp.data;
+        const income = Number(d?.incomeTotal ?? d?.income ?? 0);
+        const expense = Number(d?.expenseTotal ?? d?.expense ?? 0);
+        setStats({ income, expense, net: income - expense });
+      } catch {
+        const computed = computeStatsFrom(source ?? records);
+        setStats(computed);
+      }
+
+      // 月度统计
+      try {
+        const resp = await api.financialRecords.monthlyStatistics(new Date().getFullYear());
+        const data = Array.isArray(resp.data) ? resp.data : resp.data?.data;
+        const list = (data || []).map((m: any) => ({
+          month: m.month ?? m.period ?? '',
+          income: Number(m.incomeTotal ?? m.income ?? 0),
+          expense: Number(m.expenseTotal ?? m.expense ?? 0),
+          net: Number(m.netTotal ?? (Number(m.incomeTotal ?? m.income ?? 0) - Number(m.expenseTotal ?? m.expense ?? 0)))
+        }));
+        setMonthlyStats(list.length ? list.slice(0, 6) : computeMonthlyStatsFrom(source ?? records));
+      } catch {
+        setMonthlyStats(computeMonthlyStatsFrom(source ?? records));
+      }
+
+      // 分类统计
+      try {
+        const resp = await api.financialRecords.categoryStatistics();
+        const data = Array.isArray(resp.data) ? resp.data : resp.data?.data;
+        const list = (data || []).map((c: any) => ({
+          categoryId: Number(c.categoryId ?? 0),
+          categoryName: c.categoryName ?? '',
+          income: Number(c.incomeTotal ?? c.income ?? 0),
+          expense: Number(c.expenseTotal ?? c.expense ?? 0),
+          net: Number(c.netTotal ?? (Number(c.incomeTotal ?? c.income ?? 0) - Number(c.expenseTotal ?? c.expense ?? 0)))
+        }));
+        setCategoryStats(list.length ? list.slice(0, 8) : computeCategoryStatsFrom(source ?? records));
+      } catch {
+        setCategoryStats(computeCategoryStatsFrom(source ?? records));
+      }
+    } finally {
+      setStatsLoading(false);
     }
   };
 
   const fetchRecords = async () => {
     try {
-      setLoading(true);
-      // 这里应该调用实际的API，暂时使用模拟数据
+      setRecordsLoading(true);
+      const resp = await api.financialRecords.recent(10);
+      const raw = resp.data;
+      const data = Array.isArray(raw) ? raw : raw?.data;
+      const list = mapRecords(data || []);
+      if (list.length === 0) {
+        const mockRecords: FinancialRecord[] = [
+          { id: 1, categoryId: 1, categoryName: '餐饮', categoryType: 'EXPENSE', amount: 50.0, recordDate: '2024-01-01', description: '午餐', paymentMethod: '支付宝' },
+          { id: 2, categoryId: 5, categoryName: '工资', categoryType: 'INCOME', amount: 8000.0, recordDate: '2024-01-05', description: '一月工资' },
+          { id: 3, categoryId: 2, categoryName: '交通', categoryType: 'EXPENSE', amount: 12.5, recordDate: '2024-01-07', description: '地铁' },
+        ];
+        setRecords(mockRecords);
+        await loadStats(mockRecords);
+      } else {
+        setRecords(list);
+        await loadStats(list);
+      }
+    } catch (error) {
       const mockRecords: FinancialRecord[] = [
-        {
-          id: 1,
-          categoryId: 1,
-          categoryName: '餐饮',
-          categoryType: 'EXPENSE',
-          amount: 50.00,
-          recordDate: '2024-01-01',
-          description: '午餐',
-          paymentMethod: '支付宝'
-        }
+        { id: 1, categoryId: 1, categoryName: '餐饮', categoryType: 'EXPENSE', amount: 50.0, recordDate: '2024-01-01', description: '午餐', paymentMethod: '支付宝' },
+        { id: 2, categoryId: 5, categoryName: '工资', categoryType: 'INCOME', amount: 8000.0, recordDate: '2024-01-05', description: '一月工资' },
+        { id: 3, categoryId: 2, categoryName: '交通', categoryType: 'EXPENSE', amount: 12.5, recordDate: '2024-01-07', description: '地铁' },
       ];
       setRecords(mockRecords);
-    } catch (error) {
-      console.error('获取记录失败:', error);
-      setMessage({ type: 'error', text: '获取记录失败' });
+      await loadStats(mockRecords);
+      setMessage({ type: 'error', text: '获取记录失败，已使用本地数据' });
     } finally {
-      setLoading(false);
+      setRecordsLoading(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleQuery = async () => {
+    try {
+      setRecordsLoading(true);
+      let list: FinancialRecord[] = [];
+
+      if (filters.keyword) {
+        try {
+          const resp = await api.financialRecords.search(filters.keyword);
+          const data = Array.isArray(resp.data) ? resp.data : resp.data?.data;
+          list = mapRecords(data || []);
+        } catch {
+          // 本地降级搜索
+          const src = records.length ? records : [];
+          const kw = filters.keyword.toLowerCase();
+          list = src.filter(r => (
+            r.categoryName.toLowerCase().includes(kw) ||
+            (r.description || '').toLowerCase().includes(kw) ||
+            (r.paymentMethod || '').toLowerCase().includes(kw)
+          ));
+        }
+      } else if (filters.startDate || filters.endDate) {
+        try {
+          const resp = await api.financialRecords.getByDateRange(filters.startDate!, filters.endDate!);
+          const data = Array.isArray(resp.data) ? resp.data : resp.data?.data;
+          list = mapRecords(data || []);
+        } catch {
+          // 本地降级筛选
+          const src = records.length ? records : [];
+          list = src.filter(r => {
+            const inStart = !filters.startDate || r.recordDate >= filters.startDate;
+            const inEnd = !filters.endDate || r.recordDate <= filters.endDate;
+            const matchCat = !filters.categoryId || r.categoryId === Number(filters.categoryId);
+            const matchType = filters.type === 'ALL' || r.categoryType === filters.type;
+            return inStart && inEnd && matchCat && matchType;
+          });
+        }
+      } else if (filters.categoryId) {
+        try {
+          const resp = await api.financialRecords.getByCategory(Number(filters.categoryId));
+          const data = Array.isArray(resp.data) ? resp.data : resp.data?.data;
+          list = mapRecords(data || []);
+          if (filters.type !== 'ALL') list = list.filter(r => r.categoryType === filters.type);
+        } catch {
+          const src = records.length ? records : [];
+          list = src.filter(r => r.categoryId === Number(filters.categoryId) && (filters.type === 'ALL' || r.categoryType === filters.type));
+        }
+      } else {
+        const resp = await api.financialRecords.recent(10);
+        const data = Array.isArray(resp.data) ? resp.data : resp.data?.data;
+        list = mapRecords(data || []);
+      }
+
+      if (!list.length) {
+        // 保底提示
+        setMessage({ type: 'error', text: '查询结果为空，已保留当前列表' });
+      } else {
+        setRecords(list);
+        await loadStats(list);
+        setMessage(null);
+      }
+    } catch (e) {
+      setMessage({ type: 'error', text: '查询失败，请稍后重试' });
+    } finally {
+      setRecordsLoading(false);
+    }
+  };
+
+  const handleResetFilters = () => {
+    setFilters({ startDate: '', endDate: '', categoryId: '', type: 'ALL', keyword: '' });
+    fetchRecords();
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.categoryId || !formData.amount) {
       setMessage({ type: 'error', text: '请填写必填项' });
       return;
     }
 
-    setLoading(true);
+    setSubmitLoading(true);
     setMessage(null);
 
     try {
-      // 这里应该调用实际的API
-      const newRecord: FinancialRecord = {
-        id: Date.now(),
-        categoryId: parseInt(formData.categoryId),
-        categoryName: categories.find(c => c.id === parseInt(formData.categoryId))?.name || '',
-        categoryType: categories.find(c => c.id === parseInt(formData.categoryId))?.type || 'EXPENSE',
+      const payload = {
         amount: parseFloat(formData.amount),
+        categoryId: parseInt(formData.categoryId, 10),
+        description: formData.description || undefined,
         recordDate: formData.recordDate,
-        description: formData.description,
-        paymentMethod: formData.paymentMethod,
-        location: formData.location
+        tags: undefined,
+      };
+      const resp = await api.financialRecords.create(payload);
+      const r = resp.data?.data ?? resp.data;
+      const newRecord: FinancialRecord = {
+        id: Number(r?.id ?? Date.now()),
+        categoryId: payload.categoryId,
+        categoryName: r?.categoryName ?? (categories.find(c => c.id === payload.categoryId)?.name || ''),
+        categoryType: r?.categoryType ?? (categories.find(c => c.id === payload.categoryId)?.type || 'EXPENSE'),
+        amount: payload.amount,
+        recordDate: payload.recordDate,
+        description: payload.description,
       };
 
-      setRecords(prev => [newRecord, ...prev]);
+      const next = [newRecord, ...records];
+      setRecords(next);
+      await loadStats(next);
       setMessage({ type: 'success', text: '记录添加成功！' });
       setShowAddForm(false);
       setFormData({
@@ -137,20 +340,25 @@ export default function FinancialPage() {
         location: ''
       });
     } catch (error) {
-      console.error('添加记录失败:', error);
-      setMessage({ type: 'error', text: '添加记录失败，请重试' });
+      setMessage({ type: 'error', text: '添加记录失败，请检查登录或稍后重试' });
     } finally {
-      setLoading(false);
+      setSubmitLoading(false);
     }
   };
 
-  if (!user) {
-    return <LoadingSpinner text="正在验证身份..." />;
-  }
+  // 表单状态
+  const [formData, setFormData] = useState({
+    categoryId: '',
+    amount: '',
+    recordDate: new Date().toISOString().split('T')[0],
+    description: '',
+    paymentMethod: '',
+    location: ''
+  });
 
   return (
     <Layout showNavigation>
-      <div className="max-w-4xl mx-auto p-4">
+      <div className="max-w-5xl mx-auto p-4">
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-gray-900">记账系统</h2>
@@ -170,13 +378,140 @@ export default function FinancialPage() {
             </div>
           )}
 
+          {/* 筛选与搜索 */}
+          <div className="mb-6 p-4 border rounded-lg bg-gray-50">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">筛选与搜索</h3>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">开始日期</label>
+                <input
+                  type="date"
+                  value={filters.startDate}
+                  onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">结束日期</label>
+                <input
+                  type="date"
+                  value={filters.endDate}
+                  onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">分类</label>
+                <select
+                  value={filters.categoryId}
+                  onChange={(e) => setFilters(prev => ({ ...prev, categoryId: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">全部</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">类型</label>
+                <select
+                  value={filters.type}
+                  onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value as any }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="ALL">全部</option>
+                  <option value="INCOME">收入</option>
+                  <option value="EXPENSE">支出</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">关键词</label>
+                <input
+                  type="text"
+                  value={filters.keyword}
+                  onChange={(e) => setFilters(prev => ({ ...prev, keyword: e.target.value }))}
+                  placeholder="描述、支付方式、分类名"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+            <div className="mt-4 flex gap-3">
+              <button onClick={handleQuery} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">查询</button>
+              <button onClick={handleResetFilters} className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300">重置</button>
+            </div>
+          </div>
+
+          {/* 统计概览 */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">统计概览</h3>
+            {statsLoading ? (
+              <LoadingSpinner text="计算统计中..." />
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 rounded-lg bg-green-50 border">
+                  <div className="text-sm text-gray-600">收入</div>
+                  <div className="text-2xl font-bold text-green-700">¥{stats.income.toFixed(2)}</div>
+                </div>
+                <div className="p-4 rounded-lg bg-red-50 border">
+                  <div className="text-sm text-gray-600">支出</div>
+                  <div className="text-2xl font-bold text-red-700">¥{stats.expense.toFixed(2)}</div>
+                </div>
+                <div className="p-4 rounded-lg bg-blue-50 border">
+                  <div className="text-sm text-gray-600">净值</div>
+                  <div className="text-2xl font-bold text-blue-700">¥{stats.net.toFixed(2)}</div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 分类统计 */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">分类统计（Top 8）</h3>
+            {statsLoading ? (
+              <LoadingSpinner text="加载分类统计..." />
+            ) : categoryStats.length === 0 ? (
+              <p className="text-gray-500">暂无分类统计</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {categoryStats.map(cs => (
+                  <div key={cs.categoryId} className="border rounded-lg p-3 bg-gray-50">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-gray-900">{cs.categoryName}</span>
+                      <span className={`text-sm ${cs.net >= 0 ? 'text-green-700' : 'text-red-700'}`}>净值 ¥{cs.net.toFixed(2)}</span>
+                    </div>
+                    <div className="text-sm text-gray-600 mt-1">收入 ¥{cs.income.toFixed(2)} | 支出 ¥{cs.expense.toFixed(2)}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 月度统计 */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">月度统计（近6月）</h3>
+            {statsLoading ? (
+              <LoadingSpinner text="加载月度统计..." />
+            ) : monthlyStats.length === 0 ? (
+              <p className="text-gray-500">暂无月度统计</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {monthlyStats.map(ms => (
+                  <div key={ms.month} className="border rounded-lg p-3 bg-gray-50">
+                    <div className="font-medium text-gray-900">{ms.month}</div>
+                    <div className="text-sm text-gray-600 mt-1">收入 ¥{ms.income.toFixed(2)} | 支出 ¥{ms.expense.toFixed(2)}</div>
+                    <div className={`text-sm mt-1 ${ms.net >= 0 ? 'text-green-700' : 'text-red-700'}`}>净值 ¥{ms.net.toFixed(2)}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {showAddForm && (
             <form onSubmit={handleSubmit} className="mb-6 p-4 border rounded-lg bg-gray-50">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    分类 *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">分类 *</label>
                   <select
                     value={formData.categoryId}
                     onChange={(e) => setFormData(prev => ({ ...prev, categoryId: e.target.value }))}
@@ -193,9 +528,7 @@ export default function FinancialPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    金额 *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">金额 *</label>
                   <input
                     type="number"
                     step="0.01"
@@ -209,9 +542,7 @@ export default function FinancialPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    日期
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">日期</label>
                   <input
                     type="date"
                     value={formData.recordDate}
@@ -221,9 +552,7 @@ export default function FinancialPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    支付方式
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">支付方式</label>
                   <input
                     type="text"
                     value={formData.paymentMethod}
@@ -234,9 +563,7 @@ export default function FinancialPage() {
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    描述
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">描述</label>
                   <input
                     type="text"
                     value={formData.description}
@@ -250,10 +577,10 @@ export default function FinancialPage() {
               <div className="mt-4 flex justify-end">
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={submitLoading}
                   className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
                 >
-                  {loading ? '添加中...' : '添加记录'}
+                  {submitLoading ? '添加中...' : '添加记录'}
                 </button>
               </div>
             </form>
@@ -261,7 +588,7 @@ export default function FinancialPage() {
 
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-4">最近记录</h3>
-            {loading && records.length === 0 ? (
+            {recordsLoading && records.length === 0 ? (
               <LoadingSpinner text="加载记录中..." />
             ) : records.length === 0 ? (
               <p className="text-gray-500 text-center py-8">暂无记录</p>
