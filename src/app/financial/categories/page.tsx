@@ -12,7 +12,6 @@ type CategoryType = 'INCOME' | 'EXPENSE'
 // 分类数据模型（与 API 文档对齐）
 interface Category {
   id: number
-  userId?: number
   name: string
   type: CategoryType
   description?: string
@@ -152,7 +151,6 @@ export default function CategoryManagementPage() {
         const nextId = (categories.reduce((m, c) => Math.max(m, c.id), 0) || 0) + 1
         const newCategory: Category = {
           id: nextId,
-          userId: undefined,
           name: formData.name.trim(),
           type: formData.type,
           description: formData.description.trim() || undefined,
