@@ -29,8 +29,7 @@ apiClient.interceptors.request.use(
   }
 )
 
-// 在开发或设置了环境变量时，允许关闭401重定向
-const DISABLE_AUTH_REDIRECT = process.env.NEXT_PUBLIC_DISABLE_AUTH_REDIRECT === 'true'
+
 
 // 响应拦截器 - 处理认证错误
 apiClient.interceptors.response.use(
@@ -40,7 +39,7 @@ apiClient.interceptors.response.use(
       if (typeof window !== 'undefined') {
         localStorage.removeItem('jwt_token')
         localStorage.removeItem('user')
-        if (!DISABLE_AUTH_REDIRECT && window.location.pathname !== '/login') {
+        if (window.location.pathname !== '/login') {
           window.location.href = '/login'
         }
       }
