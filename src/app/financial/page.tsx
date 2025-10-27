@@ -9,6 +9,7 @@ import { api } from '@/lib/api';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import Select from '@/components/Select';
+import AddCategoryModal from '@/components/AddCategoryModal';
 
 interface Category {
   id: number;
@@ -40,6 +41,7 @@ export default function FinancialPage() {
   const [statsLoading, setStatsLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
 
   // 筛选/搜索状态
   const [filters, setFilters] = useState({
@@ -358,8 +360,24 @@ export default function FinancialPage() {
     location: ''
   });
 
+  const handleCategoryCreated = (created: { id: number; name: string; type: 'INCOME' | 'EXPENSE'; iconName?: string; colorCode?: string }) => {
+    setCategories(prev => {
+      const exists = prev.some(c => c.id === created.id)
+      const next = exists ? prev.map(c => (c.id === created.id ? { ...c, ...created } : c)) : [...prev, created]
+      return next
+    })
+    setFormData(prev => ({ ...prev, categoryId: String(created.id) }))
+    setMessage({ type: 'success', text: '分类创建成功！' })
+  }
+
   return (
-    <Layout showNavigation>
+    <>
+      <AddCategoryModal
+        isOpen={showAddCategoryModal}
+        onClose={() => setShowAddCategoryModal(false)}
+        onCreated={handleCategoryCreated}
+      />
+      <Layout showNavigation>
       <div className="max-w-5xl mx-auto p-4">
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex justify-between items-center mb-6">
@@ -518,7 +536,15 @@ export default function FinancialPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">分类 *</label>
                   <Select
                     value={formData.categoryId}
-                    onChange={(e) => setFormData(prev => ({ ...prev, categoryId: e.target.value }))}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      if (val === '__add__') {
+                        // 打开新增分类弹窗
+                        setShowAddCategoryModal(true)
+                        return
+                      }
+                      setFormData(prev => ({ ...prev, categoryId: val }))
+                    }}
                     fullWidth
                     required
                   >
@@ -528,6 +554,7 @@ export default function FinancialPage() {
                         {category.name} ({category.type === 'INCOME' ? '收入' : '支出'})
                       </option>
                     ))}
+                    <option value="__add__">＋ 新建分类...</option>
                   </Select>
                 </div>
 
@@ -636,6 +663,7 @@ export default function FinancialPage() {
           </div>
         </div>
       </div>
-    </Layout>
+      </Layout>
+    </>
   );
 }
