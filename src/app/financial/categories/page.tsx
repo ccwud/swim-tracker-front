@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation'
 import Layout from '@/components/Layout'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import { useAuth } from '@/hooks/useAuth'
+import Button from '@/components/Button'
+import Input from '@/components/Input'
+import Select from '@/components/Select'
 
 // 分类类型
 type CategoryType = 'INCOME' | 'EXPENSE'
@@ -248,18 +251,20 @@ export default function CategoryManagementPage() {
             <p className="text-sm text-gray-600 mt-1">仅前端模拟：创建、编辑、停用分类，符合文档约束</p>
           </div>
           <div className="flex gap-2">
-            <button
+            <Button
               onClick={initializeDefaults}
-              className="px-4 py-2 rounded-md bg-gray-200 text-gray-800 hover:bg-gray-300"
+              variant="secondary"
+              className="text-sm"
             >
               初始化默认分类
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={openCreateModal}
-              className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+              variant="primary"
+              className="text-sm"
             >
               新建分类
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -287,18 +292,21 @@ export default function CategoryManagementPage() {
 
         {/* 筛选区 */}
         <div className="flex items-center gap-2 mb-4">
-          <button
+          <Button
             onClick={() => setFilterType('ALL')}
-            className={`px-3 py-1 rounded-md text-sm ${filterType === 'ALL' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}
-          >全部</button>
-          <button
+            variant={filterType === 'ALL' ? 'primary' : 'secondary'}
+            className="text-sm"
+          >全部</Button>
+          <Button
             onClick={() => setFilterType('INCOME')}
-            className={`px-3 py-1 rounded-md text-sm ${filterType === 'INCOME' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}
-          >收入</button>
-          <button
+            variant={filterType === 'INCOME' ? 'primary' : 'secondary'}
+            className="text-sm"
+          >收入</Button>
+          <Button
             onClick={() => setFilterType('EXPENSE')}
-            className={`px-3 py-1 rounded-md text-sm ${filterType === 'EXPENSE' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}
-          >支出</button>
+            variant={filterType === 'EXPENSE' ? 'primary' : 'secondary'}
+            className="text-sm"
+          >支出</Button>
           <label className="ml-4 flex items-center gap-2 text-sm text-gray-700">
             <input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />
             显示已停用
@@ -334,20 +342,23 @@ export default function CategoryManagementPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button
+                    <Button
                       onClick={() => openEditModal(c)}
-                      className="px-3 py-1 rounded-md text-sm bg-indigo-600 text-white hover:bg-indigo-700"
-                    >编辑</button>
+                      variant="secondary"
+                      className="text-sm"
+                    >编辑</Button>
                     {c.isActive ? (
-                      <button
+                      <Button
                         onClick={() => handleSoftDelete(c)}
-                        className="px-3 py-1 rounded-md text-sm bg-red-600 text-white hover:bg-red-700"
-                      >停用</button>
+                        variant="secondary"
+                        className="text-sm"
+                      >停用</Button>
                     ) : (
-                      <button
+                      <Button
                         onClick={() => handleActivate(c)}
-                        className="px-3 py-1 rounded-md text-sm bg-green-600 text-white hover:bg-green-700"
-                      >启用</button>
+                        variant="secondary"
+                        className="text-sm"
+                      >启用</Button>
                     )}
                   </div>
                 </li>
@@ -366,10 +377,10 @@ export default function CategoryManagementPage() {
                 <div className="space-y-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">分类名称 *</label>
-                    <input
-                      value={formData.name}
-                      onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    <Input
+                       value={formData.name}
+                       onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      fullWidth
                       placeholder="如：餐饮、工资"
                       maxLength={50}
                       required
@@ -378,16 +389,16 @@ export default function CategoryManagementPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">分类类型 *</label>
-                    <select
+                    <Select
                       value={formData.type}
                       onChange={e => setFormData(prev => ({ ...prev, type: e.target.value as CategoryType }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                      fullWidth
                       disabled={!!editingCategory}
                       required
                     >
                       <option value="INCOME">收入</option>
                       <option value="EXPENSE">支出</option>
-                    </select>
+                    </Select>
                     {editingCategory && (
                       <p className="text-xs text-gray-500 mt-1">分类类型创建后不可修改</p>
                     )}
@@ -407,20 +418,20 @@ export default function CategoryManagementPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">图标名称</label>
-                      <input
+                      <Input
                         value={formData.iconName}
                         onChange={e => setFormData(prev => ({ ...prev, iconName: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       fullWidth
                         placeholder="如：restaurant、salary"
                         maxLength={50}
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">颜色代码</label>
-                      <input
+                      <Input
                         value={formData.colorCode}
                         onChange={e => setFormData(prev => ({ ...prev, colorCode: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       fullWidth
                         placeholder="#FF5722"
                         maxLength={7}
                       />
@@ -433,8 +444,8 @@ export default function CategoryManagementPage() {
                 </div>
 
                 <div className="mt-6 flex justify-end gap-2">
-                  <button type="button" onClick={closeModal} className="px-4 py-2 rounded-md bg-gray-200 text-gray-800 hover:bg-gray-300">取消</button>
-                  <button type="submit" disabled={loading} className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">{editingCategory ? '保存' : '创建'}</button>
+                  <Button type="button" onClick={closeModal} variant="secondary">取消</Button>
+                  <Button type="submit" disabled={loading} variant="primary">{editingCategory ? '保存' : '创建'}</Button>
                 </div>
               </form>
             </div>

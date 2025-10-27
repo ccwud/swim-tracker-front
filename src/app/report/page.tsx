@@ -8,6 +8,7 @@ import { ReportData, WeeklyReport, MonthlyReport, SwimmingRecord, ReportRecord }
 import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorMessage from '@/components/ErrorMessage';
+import Button from '@/components/Button'
 
 type ReportType = 'weekly' | 'monthly' | 'all';
 
@@ -307,44 +308,36 @@ export default function Report() {
         {/* 报告类型选择 */}
         <div className="mb-6">
           <div className="flex space-x-4 mb-4">
-            <button
+            <Button
               onClick={() => handleReportTypeChange('weekly')}
-              className={`px-4 py-2 rounded-md font-medium ${
-                reportType === 'weekly'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
+              variant={reportType === 'weekly' ? 'primary' : 'secondary'}
+              className="text-sm"
             >
               周报告
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => handleReportTypeChange('monthly')}
-              className={`px-4 py-2 rounded-md font-medium ${
-                reportType === 'monthly'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
+              variant={reportType === 'monthly' ? 'primary' : 'secondary'}
+              className="text-sm"
             >
               月报告
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => handleReportTypeChange('all')}
-              className={`px-4 py-2 rounded-md font-medium ${
-                reportType === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
+              variant={reportType === 'all' ? 'primary' : 'secondary'}
+              className="text-sm"
             >
               全部记录
-            </button>
+            </Button>
           </div>
-          <button
+          <Button
             onClick={fetchReport}
             disabled={loading}
-            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-md font-medium"
+            variant="primary"
+            className="text-sm"
           >
             {loading ? '加载中...' : '查看报告'}
-          </button>
+          </Button>
         </div>
 
         {/* 错误信息 */}

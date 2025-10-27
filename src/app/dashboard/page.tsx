@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import Button from '@/components/Button';
+import Input from '@/components/Input';
 
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -113,13 +115,13 @@ export default function Dashboard() {
             <label htmlFor="rounds" className="block text-sm font-medium text-gray-700 mb-2">
               输入您完成的回合数
             </label>
-            <input
+            <Input
               type="number"
               id="rounds"
               min="1"
               value={rounds || ''}
               onChange={(e) => setRounds(parseInt(e.target.value) || 0)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              fullWidth
               placeholder="请输入回合数"
               required
             />
@@ -129,13 +131,13 @@ export default function Dashboard() {
             <label htmlFor="roundMeters" className="block text-sm font-medium text-gray-700 mb-2">
               一个回合长度（米）
             </label>
-            <input
+            <Input
               type="number"
               id="roundMeters"
               min="1"
               value={roundMeters || ''}
               onChange={(e) => setRoundMeters(parseInt(e.target.value) || 27)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              fullWidth
               placeholder="请输入回合长度"
               required
             />
@@ -145,21 +147,22 @@ export default function Dashboard() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               预计游泳距离
             </label>
-            <input
+            <Input
               type="text"
               value={`${rounds * roundMeters} 米`}
               readOnly
-              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 font-semibold"
+              fullWidth
             />
           </div>
 
-          <button
+          <Button
             type="submit"
             disabled={loading || rounds <= 0 || roundMeters <= 0}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-md transition duration-200"
+            fullWidth
+            variant="primary"
           >
             {loading ? '打卡中...' : '打卡'}
-          </button>
+          </Button>
         </form>
       </div>
     </Layout>

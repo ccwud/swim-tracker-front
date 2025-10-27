@@ -3,6 +3,7 @@
 import { ReactNode } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter, usePathname } from 'next/navigation';
+import Button from '@/components/Button'
 
 interface LayoutProps {
   children: ReactNode;
@@ -23,55 +24,51 @@ export default function Layout({ children, showNavigation = false }: LayoutProps
   return (
     <div className="min-h-screen bg-gray-50">
       {showNavigation && user && (
-        <nav className="bg-white shadow-sm border-b">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
+        <nav className="topnav">
+          <div className="max-w-7xl mx-auto topnav__container">
+            <div className="topnav__inner">
               <div className="flex items-center">
                 <button
                   onClick={() => router.push('/choice')}
-                  className="text-xl font-semibold text-gray-900 hover:text-blue-600 cursor-pointer"
+                  className="topnav__brand text-xl font-semibold cursor-pointer"
                 >
                   多功能系统
                 </button>
               </div>
               <div className="flex-1 flex items-center justify-center">
-                <div className="inline-flex rounded-md shadow-sm border">
-                  <button
+                <div className="topnav__group">
+                  <Button
                     onClick={() => router.push('/dashboard')}
-                    className={`px-4 py-2 text-sm font-medium rounded-l-md ${
-                      pathname?.startsWith('/dashboard') || pathname === '/report'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white text-blue-700 hover:bg-blue-50'
-                    }`}
+                    variant={(pathname?.startsWith('/dashboard') || pathname === '/report') ? 'primary' : 'secondary'}
+                    className="text-sm"
                   >
                     游泳打卡
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => router.push('/financial')}
-                    className={`px-4 py-2 text-sm font-medium rounded-r-md ${
-                      pathname?.startsWith('/financial')
-                        ? 'bg-green-600 text-white'
-                        : 'bg-white text-green-700 hover:bg-green-50'
-                    }`}
+                    variant={pathname?.startsWith('/financial') ? 'primary' : 'secondary'}
+                    className="text-sm"
                   >
                     记账系统
-                  </button>
+                  </Button>
                 </div>
               </div>
-              <div className="flex items-center space-x-4">
+              <div className="topnav__actions">
                 <span className="text-sm text-gray-700">欢迎，{user.username}</span>
-                <button
+                <Button
                   onClick={() => router.push(isFinancialContext ? '/financial/report' : '/report')}
-                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  variant="ghost"
+                  className="text-sm"
                 >
                   报告
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={handleLogout}
-                  className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
+                  variant="secondary"
+                  className="text-sm"
                 >
                   注销
-                </button>
+                </Button>
               </div>
             </div>
           </div>

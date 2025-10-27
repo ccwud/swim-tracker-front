@@ -6,6 +6,9 @@ import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import Button from '@/components/Button';
+import Input from '@/components/Input';
+import Select from '@/components/Select';
 
 interface Category {
   id: number;
@@ -362,18 +365,12 @@ export default function FinancialPage() {
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-gray-900">记账系统</h2>
             <div className="flex gap-2">
-              <button
-                onClick={() => setShowAddForm(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
+              <Button onClick={() => setShowAddForm(true)} variant="primary" className="text-sm">
                 添加记录
-              </button>
-              <button
-                onClick={() => router.push('/financial/report')}
-                className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300"
-              >
+              </Button>
+              <Button onClick={() => router.push('/financial/report')} variant="secondary" className="text-sm">
                 查看报告
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -391,61 +388,61 @@ export default function FinancialPage() {
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">开始日期</label>
-                <input
-                  type="date"
-                  value={filters.startDate}
-                  onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                <Input
+                   type="date"
+                   value={filters.startDate}
+                   onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
+                   fullWidth
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">结束日期</label>
-                <input
-                  type="date"
-                  value={filters.endDate}
-                  onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                <Input
+                   type="date"
+                   value={filters.endDate}
+                   onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
+                   fullWidth
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">分类</label>
-                <select
+                <Select
                   value={filters.categoryId}
                   onChange={(e) => setFilters(prev => ({ ...prev, categoryId: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  fullWidth
                 >
                   <option value="">全部</option>
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
-                </select>
+                </Select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">类型</label>
-                <select
+                <Select
                   value={filters.type}
-                  onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value as any }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value as 'ALL' | 'INCOME' | 'EXPENSE' }))}
+                  fullWidth
                 >
                   <option value="ALL">全部</option>
                   <option value="INCOME">收入</option>
                   <option value="EXPENSE">支出</option>
-                </select>
+                </Select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">关键词</label>
-                <input
-                  type="text"
-                  value={filters.keyword}
-                  onChange={(e) => setFilters(prev => ({ ...prev, keyword: e.target.value }))}
-                  placeholder="描述、支付方式、分类名"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                <Input
+                   type="text"
+                   value={filters.keyword}
+                   onChange={(e) => setFilters(prev => ({ ...prev, keyword: e.target.value }))}
+                   placeholder="描述、支付方式、分类名"
+                   fullWidth
                 />
               </div>
             </div>
             <div className="mt-4 flex gap-3">
-              <button onClick={handleQuery} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">查询</button>
-              <button onClick={handleResetFilters} className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300">重置</button>
+              <Button onClick={handleQuery} variant="primary" className="text-sm">查询</Button>
+              <Button onClick={handleResetFilters} variant="secondary" className="text-sm">重置</Button>
             </div>
           </div>
 
@@ -519,10 +516,10 @@ export default function FinancialPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">分类 *</label>
-                  <select
+                  <Select
                     value={formData.categoryId}
                     onChange={(e) => setFormData(prev => ({ ...prev, categoryId: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    fullWidth
                     required
                   >
                     <option value="">请选择分类</option>
@@ -531,64 +528,68 @@ export default function FinancialPage() {
                         {category.name} ({category.type === 'INCOME' ? '收入' : '支出'})
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">金额 *</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.amount}
-                    onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="0.00"
-                    required
-                  />
+                  <Input
+                     type="number"
+                     step="0.01"
+                     min="0"
+                     value={formData.amount}
+                     onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                     fullWidth
+
+                     placeholder="0.00"
+                     required
+                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">日期</label>
-                  <input
-                    type="date"
-                    value={formData.recordDate}
-                    onChange={(e) => setFormData(prev => ({ ...prev, recordDate: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  <Input
+                     type="date"
+                     value={formData.recordDate}
+                     onChange={(e) => setFormData(prev => ({ ...prev, recordDate: e.target.value }))}
+                     fullWidth
+
+                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">支付方式</label>
-                  <input
-                    type="text"
-                    value={formData.paymentMethod}
-                    onChange={(e) => setFormData(prev => ({ ...prev, paymentMethod: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="如：支付宝、微信、现金"
-                  />
+                  <Input
+                     type="text"
+                     value={formData.paymentMethod}
+                     onChange={(e) => setFormData(prev => ({ ...prev, paymentMethod: e.target.value }))}
+                     fullWidth
+
+                     placeholder="如：支付宝、微信、现金"
+                   />
                 </div>
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">描述</label>
-                  <input
-                    type="text"
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="记录描述"
-                  />
+                  <Input
+                     type="text"
+                     value={formData.description}
+                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                     fullWidth
+
+                     placeholder="记录描述"
+                   />
                 </div>
               </div>
 
               <div className="mt-4 flex justify-end">
-                <button
+                <Button
                   type="submit"
                   disabled={submitLoading}
-                  className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
+                  variant="primary"
                 >
                   {submitLoading ? '添加中...' : '添加记录'}
-                </button>
+                </Button>
               </div>
             </form>
           )}
