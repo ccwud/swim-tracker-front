@@ -2,7 +2,7 @@
 
 import { ReactNode } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface LayoutProps {
   children: ReactNode;
@@ -12,6 +12,8 @@ interface LayoutProps {
 export default function Layout({ children, showNavigation = false }: LayoutProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  const isFinancialContext = pathname?.startsWith('/financial');
 
   const handleLogout = () => {
     logout();
@@ -23,7 +25,7 @@ export default function Layout({ children, showNavigation = false }: LayoutProps
       {showNavigation && user && (
         <nav className="bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between h-16">
+            <div className="flex items-center justify-between h-16">
               <div className="flex items-center">
                 <button
                   onClick={() => router.push('/choice')}
@@ -32,22 +34,34 @@ export default function Layout({ children, showNavigation = false }: LayoutProps
                   多功能系统
                 </button>
               </div>
+              <div className="flex-1 flex items-center justify-center">
+                <div className="inline-flex rounded-md shadow-sm border">
+                  <button
+                    onClick={() => router.push('/dashboard')}
+                    className={`px-4 py-2 text-sm font-medium rounded-l-md ${
+                      pathname?.startsWith('/dashboard') || pathname === '/report'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-white text-blue-700 hover:bg-blue-50'
+                    }`}
+                  >
+                    游泳打卡
+                  </button>
+                  <button
+                    onClick={() => router.push('/financial')}
+                    className={`px-4 py-2 text-sm font-medium rounded-r-md ${
+                      pathname?.startsWith('/financial')
+                        ? 'bg-green-600 text-white'
+                        : 'bg-white text-green-700 hover:bg-green-50'
+                    }`}
+                  >
+                    记账系统
+                  </button>
+                </div>
+              </div>
               <div className="flex items-center space-x-4">
                 <span className="text-sm text-gray-700">欢迎，{user.username}</span>
                 <button
-                  onClick={() => router.push('/dashboard')}
-                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                >
-                  游泳打卡
-                </button>
-                <button
-                  onClick={() => router.push('/financial')}
-                  className="text-green-600 hover:text-green-800 text-sm font-medium"
-                >
-                  记账系统
-                </button>
-                <button
-                  onClick={() => router.push('/report')}
+                  onClick={() => router.push(isFinancialContext ? '/financial/report' : '/report')}
                   className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                 >
                   报告

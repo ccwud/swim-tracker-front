@@ -1,0 +1,1 @@
+写的代码要满足eslint的规则,写完代码之后要能npm run build成功。

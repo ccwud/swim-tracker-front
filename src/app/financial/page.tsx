@@ -4,6 +4,7 @@ import { useState, useEffect, FormEvent } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 
 interface Category {
@@ -28,12 +29,13 @@ interface FinancialRecord {
 
 export default function FinancialPage() {
   const { loading: authLoading } = useAuth();
+  const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
   const [records, setRecords] = useState<FinancialRecord[]>([]);
   const [recordsLoading, setRecordsLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [statsLoading, setStatsLoading] = useState(false);
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // 筛选/搜索状态
@@ -207,7 +209,6 @@ export default function FinancialPage() {
         await loadStats(mockRecords);
       } else {
         setRecords(list);
-        await loadStats(list);
       }
     } catch (error) {
       const mockRecords: FinancialRecord[] = [
@@ -216,7 +217,6 @@ export default function FinancialPage() {
         { id: 3, categoryId: 2, categoryName: '交通', categoryType: 'EXPENSE', amount: 12.5, recordDate: '2024-01-07', description: '地铁' },
       ];
       setRecords(mockRecords);
-      await loadStats(mockRecords);
       setMessage({ type: 'error', text: '获取记录失败，已使用本地数据' });
     } finally {
       setRecordsLoading(false);
@@ -326,9 +326,8 @@ export default function FinancialPage() {
         description: payload.description,
       };
 
-      const next = [newRecord, ...records];
+      const next = [newRecord, ...records].slice(0, 10);
       setRecords(next);
-      await loadStats(next);
       setMessage({ type: 'success', text: '记录添加成功！' });
       setShowAddForm(false);
       setFormData({
@@ -362,12 +361,20 @@ export default function FinancialPage() {
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-gray-900">记账系统</h2>
-            <button
-              onClick={() => setShowAddForm(!showAddForm)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {showAddForm ? '取消' : '添加记录'}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                添加记录
+              </button>
+              <button
+                onClick={() => router.push('/financial/report')}
+                className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300"
+              >
+                查看报告
+              </button>
+            </div>
           </div>
 
           {message && (
@@ -379,7 +386,7 @@ export default function FinancialPage() {
           )}
 
           {/* 筛选与搜索 */}
-          <div className="mb-6 p-4 border rounded-lg bg-gray-50">
+          <div className="mb-6 p-4 border rounded-lg bg-gray-50 hidden">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">筛选与搜索</h3>
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div>
@@ -443,7 +450,7 @@ export default function FinancialPage() {
           </div>
 
           {/* 统计概览 */}
-          <div className="mb-6">
+          <div className="mb-6 hidden">
             <h3 className="text-lg font-semibold text-gray-900 mb-3">统计概览</h3>
             {statsLoading ? (
               <LoadingSpinner text="计算统计中..." />
@@ -466,7 +473,7 @@ export default function FinancialPage() {
           </div>
 
           {/* 分类统计 */}
-          <div className="mb-6">
+          <div className="mb-6 hidden">
             <h3 className="text-lg font-semibold text-gray-900 mb-3">分类统计（Top 8）</h3>
             {statsLoading ? (
               <LoadingSpinner text="加载分类统计..." />
@@ -488,7 +495,7 @@ export default function FinancialPage() {
           </div>
 
           {/* 月度统计 */}
-          <div className="mb-6">
+          <div className="mb-6 hidden">
             <h3 className="text-lg font-semibold text-gray-900 mb-3">月度统计（近6月）</h3>
             {statsLoading ? (
               <LoadingSpinner text="加载月度统计..." />
@@ -587,7 +594,7 @@ export default function FinancialPage() {
           )}
 
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">最近记录</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">最近记录（前10条）</h3>
             {recordsLoading && records.length === 0 ? (
               <LoadingSpinner text="加载记录中..." />
             ) : records.length === 0 ? (
