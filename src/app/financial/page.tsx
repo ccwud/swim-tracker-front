@@ -10,6 +10,7 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import Select from '@/components/Select';
 import AddCategoryModal from '@/components/AddCategoryModal';
+import ImportBillsModal from '@/components/ImportBillsModal';
 
 interface Category {
   id: number;
@@ -42,6 +43,7 @@ export default function FinancialPage() {
   const [showAddForm, setShowAddForm] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // 筛选/搜索状态
   const [filters, setFilters] = useState({
@@ -377,6 +379,16 @@ export default function FinancialPage() {
         onClose={() => setShowAddCategoryModal(false)}
         onCreated={handleCategoryCreated}
       />
+      <ImportBillsModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImported={(msg?: string) => {
+          setMessage({ type: 'success', text: msg || '导入成功！' });
+          // 刷新近期记录与统计
+          fetchRecords();
+          loadStats();
+        }}
+      />
       <Layout showNavigation>
       <div className="max-w-5xl mx-auto p-4">
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -385,6 +397,9 @@ export default function FinancialPage() {
             <div className="flex gap-2">
               <Button onClick={() => setShowAddForm(true)} variant="primary" className="text-sm">
                 添加记录
+              </Button>
+              <Button onClick={() => setShowImportModal(true)} variant="secondary" className="text-sm">
+                导入账单
               </Button>
               <Button onClick={() => router.push('/financial/report')} variant="secondary" className="text-sm">
                 查看报告

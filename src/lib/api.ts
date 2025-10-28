@@ -112,6 +112,26 @@ export const systemAPI = {
     apiClient.get('/health'),
 }
 
+// 账单导入 API
+export const billsAPI = {
+  // 导入账单文件（成功返回 text/plain）
+  importBills: (
+    file: File,
+    sourceType: 'WECHAT' | 'ALIPAY' | 'BANK_STATEMENT',
+  ) => {
+    const form = new FormData()
+    form.append('file', file)
+    form.append('sourceType', sourceType)
+    return apiClient.post('/bills/import', form, {
+      headers: {
+        // 让浏览器设置边界，显式指定类型避免默认 application/json 覆盖
+        'Content-Type': 'multipart/form-data',
+        Accept: 'text/plain',
+      },
+    })
+  },
+}
+
 // 分类管理 API（对齐 API_CATEGORY_MODULE.md）
 export const categoriesAPI = {
   list: () => apiClient.get('/categories'),
@@ -165,6 +185,9 @@ export const api = {
   
   // 系统相关
   healthCheck: systemAPI.healthCheck,
+
+  // 账单导入相关
+  bills: billsAPI,
 
   // 分类相关
   categories: categoriesAPI,
