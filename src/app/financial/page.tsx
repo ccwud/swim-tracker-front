@@ -382,11 +382,11 @@ export default function FinancialPage() {
       <ImportBillsModal
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}
-        onImported={(msg?: string) => {
+        onImported={async (msg?: string) => {
+          // 导入后按照当前筛选条件增量刷新
+          await handleQuery();
+          // 保留成功提示
           setMessage({ type: 'success', text: msg || '导入成功！' });
-          // 刷新近期记录与统计
-          fetchRecords();
-          loadStats();
         }}
       />
       <Layout showNavigation>
