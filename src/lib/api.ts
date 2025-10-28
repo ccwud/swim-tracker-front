@@ -1,7 +1,7 @@
-import axios from 'axios'
+import axios, { AxiosProgressEvent } from 'axios'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.sol-aqua.top/api'
-// const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/api'
+// const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.sol-aqua.top/api'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/api'
 // 创建 axios 实例  111 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -118,6 +118,11 @@ export const billsAPI = {
   importBills: (
     file: File,
     sourceType: 'WECHAT' | 'ALIPAY' | 'BANK_STATEMENT',
+    options?: {
+      timeoutMs?: number
+      signal?: AbortSignal
+      onUploadProgress?: (event: AxiosProgressEvent) => void
+    },
   ) => {
     const form = new FormData()
     form.append('file', file)
@@ -128,6 +133,10 @@ export const billsAPI = {
         'Content-Type': 'multipart/form-data',
         Accept: 'text/plain',
       },
+      // 导入账单通常较耗时，这里提高默认超时时间；如传入则以调用方为准
+      timeout: options?.timeoutMs ?? 120000,
+      signal: options?.signal,
+      onUploadProgress: options?.onUploadProgress,
     })
   },
 }
@@ -158,7 +167,7 @@ export const financialRecordsAPI = {
   search: (keyword: string, params?: { page?: number; size?: number }) => apiClient.get('/financial-records/search', { params: { keyword, ...params } }),
   statistics: (params?: { startDate?: string; endDate?: string }) => apiClient.get('/financial-records/statistics', { params }),
   monthlyStatistics: (year: number) => apiClient.get('/financial-records/monthly-statistics', { params: { year } }),
-  categoryStatistics: (params?: { startDate?: string; endDate?: string; type?: 'INCOME' | 'EXPENSE' }) => apiClient.get('/financial-records/category-statistics', { params }),
+  categoryStatistics: (params: { startDate?: string; endDate?: string; type: 'INCOME' | 'EXPENSE' }) => apiClient.get('/financial-records/category-statistics', { params }),
   recent: (limit?: number) => apiClient.get('/financial-records/recent', { params: { limit } }),
   batchImport: (records: Array<{ amount: number; categoryId: number; description?: string; recordDate: string; tags?: string[] }>) => apiClient.post('/financial-records/batch-import', records),
 }

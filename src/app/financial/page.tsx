@@ -149,6 +149,13 @@ export default function FinancialPage() {
     return result;
   };
 
+  const formatDate = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
   const loadStats = async (source?: FinancialRecord[]) => {
     setStatsLoading(true);
     try {
@@ -179,18 +186,94 @@ export default function FinancialPage() {
         setMonthlyStats(computeMonthlyStatsFrom(source ?? records));
       }
 
-      // 分类统计
+      // 分类统计（并行拉取 INCOME/EXPENSE，并在前端合并）
       try {
-        const resp = await api.financialRecords.categoryStatistics();
-        const data = Array.isArray(resp.data) ? resp.data : resp.data?.data;
-        const list = (data || []).map((c: any) => ({
-          categoryId: Number(c.categoryId ?? 0),
-          categoryName: c.categoryName ?? '',
-          income: Number(c.incomeTotal ?? c.income ?? 0),
-          expense: Number(c.expenseTotal ?? c.expense ?? 0),
-          net: Number(c.netTotal ?? (Number(c.incomeTotal ?? c.income ?? 0) - Number(c.expenseTotal ?? c.expense ?? 0)))
-        }));
-        setCategoryStats(list.length ? list.slice(0, 8) : computeCategoryStatsFrom(source ?? records));
+        // 优先使用筛选条件；若缺失则根据当前数据范围或默认近30天推导
+        const today = new Date();
+        const defaultEnd = formatDate(today);
+        const defaultStart = formatDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 29));
+        let start = (filters.startDate || '').trim();
+        let end = (filters.endDate || '').trim();
+
+        if (!start || !end) {
+          const base = (source ?? records) || [];
+          if (base.length) {
+            const sortedDates = base
+              .map(r => r.recordDate)
+              .filter(Boolean)
+              .sort();
+            const minDate = sortedDates[0];
+            const maxDate = sortedDates[sortedDates.length - 1];
+            start = start || minDate || defaultStart;
+            end = end || maxDate || defaultEnd;
+          } else {
+            // 无数据时使用默认的近30天范围
+            start = start || defaultStart;
+            end = end || defaultEnd;
+          }
+        }
+
+        const baseParams = { startDate: start, endDate: end };
+
+        // 若用户筛选了单一类型，则只需命中该类型；否则默认双请求并合并
+        if (filters.type === 'INCOME') {
+          const resp = await api.financialRecords.categoryStatistics({ ...baseParams, type: 'INCOME' });
+          const data = Array.isArray(resp.data) ? resp.data : resp.data?.data;
+          const onlyIncome: Array<{ categoryId: number; categoryName: string; income: number; expense: number; net: number }> = (data || []).map((c: any) => ({
+            categoryId: Number(c.categoryId ?? c.id ?? 0),
+            categoryName: c.categoryName ?? c.name ?? '',
+            income: Number(c.totalAmount ?? c.amount ?? c.incomeTotal ?? c.income ?? 0),
+            expense: 0,
+            net: Number(c.totalAmount ?? c.amount ?? c.incomeTotal ?? c.income ?? 0),
+          }));
+          setCategoryStats(onlyIncome.length ? onlyIncome.sort((a, b) => (b.income + b.expense) - (a.income + a.expense)).slice(0, 8) : computeCategoryStatsFrom(source ?? records));
+        } else if (filters.type === 'EXPENSE') {
+          const resp = await api.financialRecords.categoryStatistics({ ...baseParams, type: 'EXPENSE' });
+          const data = Array.isArray(resp.data) ? resp.data : resp.data?.data;
+          const onlyExpense: Array<{ categoryId: number; categoryName: string; income: number; expense: number; net: number }> = (data || []).map((c: any) => ({
+            categoryId: Number(c.categoryId ?? c.id ?? 0),
+            categoryName: c.categoryName ?? c.name ?? '',
+            income: 0,
+            expense: Number(c.totalAmount ?? c.amount ?? c.expenseTotal ?? c.expense ?? 0),
+            net: -Number(c.totalAmount ?? c.amount ?? c.expenseTotal ?? c.expense ?? 0),
+          }));
+          setCategoryStats(onlyExpense.length ? onlyExpense.sort((a, b) => (b.income + b.expense) - (a.income + a.expense)).slice(0, 8) : computeCategoryStatsFrom(source ?? records));
+        } else {
+          const [incomeResp, expenseResp] = await Promise.all([
+            api.financialRecords.categoryStatistics({ ...baseParams, type: 'INCOME' }),
+            api.financialRecords.categoryStatistics({ ...baseParams, type: 'EXPENSE' }),
+          ]);
+
+          const incomeData = Array.isArray(incomeResp.data) ? incomeResp.data : incomeResp.data?.data;
+          const expenseData = Array.isArray(expenseResp.data) ? expenseResp.data : expenseResp.data?.data;
+
+          const merged = new Map<number, { categoryId: number; categoryName: string; income: number; expense: number; net: number }>();
+
+          (incomeData || []).forEach((c: any) => {
+            const id = Number(c.categoryId ?? c.id ?? 0);
+            const name = c.categoryName ?? c.name ?? '';
+            const amount = Number(c.totalAmount ?? c.amount ?? c.incomeTotal ?? c.income ?? 0);
+            const cur = merged.get(id) || { categoryId: id, categoryName: name, income: 0, expense: 0, net: 0 };
+            cur.categoryName = cur.categoryName || name;
+            cur.income += amount;
+            cur.net = cur.income - cur.expense;
+            merged.set(id, cur);
+          });
+
+          (expenseData || []).forEach((c: any) => {
+            const id = Number(c.categoryId ?? c.id ?? 0);
+            const name = c.categoryName ?? c.name ?? '';
+            const amount = Number(c.totalAmount ?? c.amount ?? c.expenseTotal ?? c.expense ?? 0);
+            const cur = merged.get(id) || { categoryId: id, categoryName: name, income: 0, expense: 0, net: 0 };
+            cur.categoryName = cur.categoryName || name;
+            cur.expense += amount;
+            cur.net = cur.income - cur.expense;
+            merged.set(id, cur);
+          });
+
+          const list = Array.from(merged.values()).sort((a, b) => (b.expense + b.income) - (a.expense + a.income)).slice(0, 8);
+          setCategoryStats(list.length ? list : computeCategoryStatsFrom(source ?? records));
+        }
       } catch {
         setCategoryStats(computeCategoryStatsFrom(source ?? records));
       }

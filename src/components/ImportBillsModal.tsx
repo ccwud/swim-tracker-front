@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Button from '@/components/Button'
 import Select from '@/components/Select'
 import { api } from '@/lib/api'
@@ -19,14 +19,24 @@ export default function ImportBillsModal({ isOpen, onClose, onImported }: Import
   const [error, setError] = useState<string | null>(null)
   const [dragActive, setDragActive] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
+  const [longRunning, setLongRunning] = useState(false)
+  const longTimerRef = useRef<number | null>(null)
 
-  if (!isOpen) return null
 
   const resetAndClose = () => {
+    // 如有进行中的请求，主动中断
+    abortRef.current?.abort()
+    abortRef.current = null
+    if (longTimerRef.current) {
+      window.clearTimeout(longTimerRef.current)
+      longTimerRef.current = null
+    }
     setSourceType('WECHAT')
     setFile(null)
     setSubmitting(false)
     setError(null)
+    setLongRunning(false)
     onClose()
   }
 
@@ -107,19 +117,58 @@ export default function ImportBillsModal({ isOpen, onClose, onImported }: Import
     if (!file) return
     setSubmitting(true)
     setError(null)
+    setLongRunning(false)
+    // 启动长时任务阈值计时（8s 提示）
+    if (longTimerRef.current) window.clearTimeout(longTimerRef.current)
+    longTimerRef.current = window.setTimeout(() => setLongRunning(true), 8000)
+
+    // 创建可取消的控制器
+    const controller = new AbortController()
+    abortRef.current = controller
     try {
-      const resp = await api.bills.importBills(file, sourceType)
+      const resp = await api.bills.importBills(file, sourceType, {
+        timeoutMs: 120000,
+        signal: controller.signal,
+      })
       const msg = typeof resp.data === 'string' ? resp.data : '导入成功'
       onImported(msg)
       resetAndClose()
     } catch (e: unknown) {
-      setError(parseErrorMessage(e))
+      // 识别主动取消
+      const isCanceled =
+        (typeof e === 'object' && e !== null && (e as { code?: string }).code === 'ERR_CANCELED') ||
+        (e instanceof DOMException && e.name === 'AbortError')
+      if (isCanceled) {
+        setError('已取消导入')
+      } else {
+        setError(parseErrorMessage(e))
+      }
     } finally {
+      abortRef.current = null
+      if (longTimerRef.current) {
+        window.clearTimeout(longTimerRef.current)
+        longTimerRef.current = null
+      }
       setSubmitting(false)
     }
   }
 
+  // 组件卸载时，避免悬挂请求
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort()
+      if (longTimerRef.current) window.clearTimeout(longTimerRef.current)
+    }
+  }, [])
+
+  const stopImport = () => {
+    if (submitting) {
+      abortRef.current?.abort()
+    }
+  }
+
   const isUnsupported = sourceType === 'BANK_STATEMENT'
+  if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -192,6 +241,11 @@ export default function ImportBillsModal({ isOpen, onClose, onImported }: Import
 
         <div className="mt-5 flex justify-end gap-3">
           <Button variant="ghost" onClick={resetAndClose} disabled={submitting}>取消</Button>
+          {submitting && (
+            <Button variant="secondary" onClick={stopImport}>
+              停止导入
+            </Button>
+          )}
           <Button variant="primary" onClick={handleImport} disabled={submitting || isUnsupported || !file}>
             {submitting ? '导入中...' : '导入'}
           </Button>
@@ -199,7 +253,12 @@ export default function ImportBillsModal({ isOpen, onClose, onImported }: Import
 
         {submitting && (
           <div className="absolute inset-0 bg-white/60 flex items-center justify-center rounded-lg">
-            <LoadingSpinner text="正在导入，请稍候..." />
+            <div className="flex flex-col items-center gap-2">
+              <LoadingSpinner text="正在导入，请稍候..." />
+              {longRunning && (
+                <p className="text-xs text-gray-600">文件较大或服务器繁忙，可能需要 1-2 分钟</p>
+              )}
+            </div>
           </div>
         )}
       </div>
