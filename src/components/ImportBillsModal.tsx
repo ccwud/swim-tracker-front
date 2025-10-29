@@ -69,13 +69,13 @@ export default function ImportBillsModal({ isOpen, onClose, onImported }: Import
   const acceptBySource = (): string => {
     const excelMimes = 'application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     if (sourceType === 'ALIPAY') return `${excelMimes},text/csv,.xls,.xlsx,.csv`
-    if (sourceType === 'BANK_STATEMENT') return 'application/pdf,.pdf'
+    if (sourceType === 'BANK_STATEMENT') return 'text/csv,.csv'
     return `${excelMimes},.xls,.xlsx`
   }
 
   const allowedExtensions = (): string[] => {
     if (sourceType === 'ALIPAY') return ['.xls', '.xlsx', '.csv']
-    if (sourceType === 'BANK_STATEMENT') return ['.pdf']
+    if (sourceType === 'BANK_STATEMENT') return ['.csv']
     return ['.xls', '.xlsx']
   }
 
@@ -200,7 +200,7 @@ export default function ImportBillsModal({ isOpen, onClose, onImported }: Import
             <Select value={sourceType} onChange={(e) => setSourceType(e.target.value as SourceType)} fullWidth required>
               <option value="WECHAT">微信</option>
               <option value="ALIPAY">支付宝</option>
-              <option value="BANK_STATEMENT">银行卡流水（PDF）</option>
+              <option value="BANK_STATEMENT">银行卡流水（CSV）</option>
             </Select>
           </div>
 
@@ -226,7 +226,7 @@ export default function ImportBillsModal({ isOpen, onClose, onImported }: Import
                 </div>
               )}
               <div className="mt-1 text-xs text-gray-500">
-                {sourceType === 'ALIPAY' ? '支持 .xls / .xlsx / .csv' : sourceType === 'BANK_STATEMENT' ? '支持 .pdf' : '支持 .xls / .xlsx'}
+                {sourceType === 'ALIPAY' ? '支持 .xls / .xlsx / .csv' : sourceType === 'BANK_STATEMENT' ? '支持 .csv' : '支持 .xls / .xlsx'}
               </div>
             </div>
             {/* 隐藏的原生 file input，用于点击选择 */}
