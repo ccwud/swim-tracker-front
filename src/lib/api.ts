@@ -144,7 +144,6 @@ export const billsAPI = {
 // 分类管理 API（对齐 API_CATEGORY_MODULE.md）
 export const categoriesAPI = {
   list: () => apiClient.get('/categories'),
-  listByType: (type: 'INCOME' | 'EXPENSE') => apiClient.get(`/categories/type/${type}`),
   income: () => apiClient.get('/categories/income'),
   expense: () => apiClient.get('/categories/expense'),
   get: (id: number) => apiClient.get(`/categories/${id}`),
@@ -169,7 +168,6 @@ export const financialRecordsAPI = {
   monthlyStatistics: (year: number) => apiClient.get('/financial-records/monthly-statistics', { params: { year } }),
   categoryStatistics: (params: { startDate?: string; endDate?: string; type: 'INCOME' | 'EXPENSE' }) => apiClient.get('/financial-records/category-statistics', { params }),
   recent: (limit?: number) => apiClient.get('/financial-records/recent', { params: { limit } }),
-  batchImport: (records: Array<{ amount: number; categoryId: number; description?: string; recordDate: string; tags?: string[] }>) => apiClient.post('/financial-records/batch-import', records),
 }
 
 // 统一的 API 对象

@@ -6,6 +6,7 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorMessage from '@/components/ErrorMessage';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
+import { useRouter } from 'next/navigation';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import Select from '@/components/Select';
@@ -37,7 +38,7 @@ export default function FinancialReportPage() {
     topIncomeCategory?: { categoryId?: number; categoryName?: string; amount?: number } | null;
     topExpenseCategory?: { categoryId?: number; categoryName?: string; amount?: number } | null;
   }>({ totalIncome: 0, totalExpense: 0, netAmount: 0 });
-  const [monthlyStats, setMonthlyStats] = useState<Array<{ month: string | number; totalIncome: number; totalExpense: number; netAmount: number; recordCount?: number }>>([]);
+  const [monthlyStats, setMonthlyStats] = useState<Array<{ month: string; totalIncome: number; totalExpense: number; netAmount: number; recordCount?: number }>>([]);
   const [categoryStats, setCategoryStats] = useState<Array<{ categoryName: string; amount: number; percentage: number }>>([]);
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
@@ -87,8 +88,7 @@ export default function FinancialReportPage() {
       map.set(month, v);
     });
     const result = Array.from(map.entries()).map(([month, v]) => ({ month, totalIncome: v.totalIncome, totalExpense: v.totalExpense, netAmount: v.totalIncome - v.totalExpense, recordCount: v.recordCount }))
-      .sort((a, b) => (a.month as string) < (b.month as string) ? 1 : -1)
-      .slice(0, 6);
+      .sort((a, b) => (a.month as string) < (b.month as string) ? 1 : -1);
     return result;
   };
 
@@ -142,14 +142,27 @@ export default function FinancialReportPage() {
       try {
         const resp = await api.financialRecords.monthlyStatistics(new Date().getFullYear());
         const data = Array.isArray(resp.data) ? resp.data : resp.data?.data;
-        const list = (data || []).map((m: any) => ({
-          month: m.month ?? m.period ?? '',
-          totalIncome: Number(m.totalIncome ?? m.income ?? 0),
-          totalExpense: Number(m.totalExpense ?? m.expense ?? 0),
-          netAmount: Number(m.netAmount ?? (Number(m.totalIncome ?? m.income ?? 0) - Number(m.totalExpense ?? m.expense ?? 0))),
-          recordCount: Number(m.recordCount ?? 0)
-        }));
-        setMonthlyStats(list.length ? list.slice(0, 6) : []);
+        const list = (data || []).map((m: any) => {
+          const y = Number(m.year ?? m.y ?? m.yr);
+          const mo = Number(m.month);
+          const fromYearMonth = y && mo ? `${y}-${String(mo).padStart(2, '0')}` : '';
+          const rawPeriod = (m.period ?? m.time ?? m.label ?? m.date ?? '').toString();
+          const rawMonth = (m.month ?? '').toString();
+          const monthLabel = fromYearMonth || rawPeriod || rawMonth;
+          return {
+            month: monthLabel,
+            totalIncome: Number(m.totalIncome ?? m.incomeTotal ?? m.income ?? 0),
+            totalExpense: Number(m.totalExpense ?? m.expenseTotal ?? m.expense ?? 0),
+            netAmount: Number(
+              m.netAmount ?? m.netTotal ?? (
+                Number(m.totalIncome ?? m.incomeTotal ?? m.income ?? 0) -
+                Number(m.totalExpense ?? m.expenseTotal ?? m.expense ?? 0)
+              )
+            ),
+            recordCount: Number(m.recordCount ?? 0),
+          };
+        });
+        setMonthlyStats(list.length ? list : []);
       } catch {
         const recentResp = await api.financialRecords.recent(50);
         const data = Array.isArray(recentResp.data) ? recentResp.data : recentResp.data?.data;
@@ -315,7 +328,7 @@ export default function FinancialReportPage() {
 
         {/* 月度统计 */}
         <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">月度统计（近6月）</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">月度统计</h3>
           {statsLoading ? (
             <LoadingSpinner text="加载月度统计..." />
           ) : monthlyStats.length === 0 ? (
@@ -323,19 +336,68 @@ export default function FinancialReportPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {monthlyStats.map(ms => (
-                <div key={ms.month} className="border rounded-lg p-3 bg-gray-50">
-                  <div className="font-medium text-gray-900">{ms.month}</div>
-                  <div className="text-sm text-gray-600 mt-1">收入 ¥{ms.totalIncome.toFixed(2)} | 支出 ¥{ms.totalExpense.toFixed(2)}</div>
-                  <div className={`text-sm mt-1 ${ms.netAmount >= 0 ? 'text-green-700' : 'text-red-700'}`}>净值 ¥{ms.netAmount.toFixed(2)}</div>
-                  {typeof ms.recordCount === 'number' && (
-                    <div className="text-xs text-gray-500 mt-1">记录数 {ms.recordCount}</div>
-                  )}
-                </div>
+                <MonthStatCard key={ms.month} stat={ms} />
               ))}
             </div>
           )}
         </div>
       </div>
     </Layout>
+  );
+}
+
+// 可点击的月度统计卡片，点击跳转到按月详情列表
+function MonthStatCard({ stat }: { stat: { month: string; totalIncome: number; totalExpense: number; netAmount: number; recordCount?: number } }) {
+  const router = useRouter();
+
+  const handleClick = () => {
+    const label = (stat.month || '').trim();
+    let year: number | null = null;
+    let month: number | null = null;
+
+    // 1) 直接匹配“YYYY-?MM”或“YYYY年MM月”等格式
+    const m1 = label.match(/(\d{4}).*?(\d{1,2})/);
+    if (m1) {
+      year = Number(m1[1]);
+      month = Number(m1[2]);
+    } else if (label.includes('-')) {
+      // 2) 简单的以 - 分隔
+      const [y, mo] = label.split('-');
+      const yNum = Number(y);
+      const mNum = Number(mo);
+      if (yNum && mNum) { year = yNum; month = mNum; }
+    } else if (/^\d{1,2}$/.test(label)) {
+      // 3) 仅只有月份数字，年份取当前年
+      year = new Date().getFullYear();
+      month = Number(label);
+    }
+
+    if (!year || !month) {
+      // 无法解析则不跳转，以免进入空页面
+      return;
+    }
+
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0);
+    const fmt = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+    const start = fmt(startDate);
+    const end = fmt(endDate);
+    router.push(`/financial/date-range?month=${encodeURIComponent(stat.month)}&startDate=${encodeURIComponent(start)}&endDate=${encodeURIComponent(end)}`);
+  };
+
+  return (
+    <button type="button" onClick={handleClick} className="border rounded-lg p-3 bg-gray-50 text-left hover:bg-gray-100">
+      <div className="font-medium text-gray-900">{stat.month}</div>
+      <div className="text-sm text-gray-600 mt-1">收入 ¥{stat.totalIncome.toFixed(2)} | 支出 ¥{stat.totalExpense.toFixed(2)}</div>
+      <div className={`text-sm mt-1 ${stat.netAmount >= 0 ? 'text-green-700' : 'text-red-700'}`}>净值 ¥{stat.netAmount.toFixed(2)}</div>
+      {typeof stat.recordCount === 'number' && (
+        <div className="text-xs text-gray-500 mt-1">记录数 {stat.recordCount}</div>
+      )}
+    </button>
   );
 }

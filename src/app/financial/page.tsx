@@ -127,8 +127,7 @@ export default function FinancialPage() {
       map.set(month, v);
     });
     const result = Array.from(map.entries()).map(([month, v]) => ({ month, income: v.income, expense: v.expense, net: v.income - v.expense }))
-      .sort((a, b) => a.month < b.month ? 1 : -1)
-      .slice(0, 6);
+      .sort((a, b) => a.month < b.month ? 1 : -1);
     return result;
   };
 
@@ -181,7 +180,7 @@ export default function FinancialPage() {
           expense: Number(m.expenseTotal ?? m.expense ?? 0),
           net: Number(m.netTotal ?? (Number(m.incomeTotal ?? m.income ?? 0) - Number(m.expenseTotal ?? m.expense ?? 0)))
         }));
-        setMonthlyStats(list.length ? list.slice(0, 6) : computeMonthlyStatsFrom(source ?? records));
+        setMonthlyStats(list.length ? list : computeMonthlyStatsFrom(source ?? records));
       } catch {
         setMonthlyStats(computeMonthlyStatsFrom(source ?? records));
       }
@@ -609,7 +608,7 @@ export default function FinancialPage() {
 
           {/* 月度统计 */}
           <div className="mb-6 hidden">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">月度统计（近6月）</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">月度统计</h3>
             {statsLoading ? (
               <LoadingSpinner text="加载月度统计..." />
             ) : monthlyStats.length === 0 ? (
