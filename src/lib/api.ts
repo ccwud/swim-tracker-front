@@ -166,7 +166,7 @@ export const financialRecordsAPI = {
   search: (keyword: string, params?: { page?: number; size?: number }) => apiClient.get('/financial-records/search', { params: { keyword, ...params } }),
   statistics: (params?: { startDate?: string; endDate?: string }) => apiClient.get('/financial-records/statistics', { params }),
   monthlyStatistics: (year: number) => apiClient.get('/financial-records/monthly-statistics', { params: { year } }),
-  categoryStatistics: (params: { startDate?: string; endDate?: string; type: 'INCOME' | 'EXPENSE' }) => apiClient.get('/financial-records/category-statistics', { params }),
+  categoryStatistics: (params?: { startDate?: string; endDate?: string; type?: 'INCOME' | 'EXPENSE' }) => apiClient.get('/financial-records/category-statistics', { params }),
   recent: (limit?: number) => apiClient.get('/financial-records/recent', { params: { limit } }),
 }
 
