@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import Select from '@/components/Select';
+import Pagination from '@/components/Pagination';
 
 interface FinancialRecord {
   id: number;
@@ -39,10 +40,17 @@ export default function FinancialReportPage() {
     topExpenseCategory?: { categoryId?: number; categoryName?: string; amount?: number } | null;
   }>({ totalIncome: 0, totalExpense: 0, netAmount: 0 });
   const [monthlyStats, setMonthlyStats] = useState<Array<{ month: string; totalIncome: number; totalExpense: number; netAmount: number; recordCount?: number }>>([]);
-  const [categoryStats, setCategoryStats] = useState<Array<{ categoryId: number; categoryName: string; amount: number; percentage: number; categoryType?: 'INCOME' | 'EXPENSE' }>>([]);
+  const [categoryIncomeStats, setCategoryIncomeStats] = useState<Array<{ categoryId: number; categoryName: string; amount: number; percentage: number }>>([]);
+  const [categoryExpenseStats, setCategoryExpenseStats] = useState<Array<{ categoryId: number; categoryName: string; amount: number; percentage: number }>>([]);
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
-  const [categoryType, setCategoryType] = useState<'INCOME' | 'EXPENSE'>('EXPENSE');
+  const [categoryType, setCategoryType] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
+
+  // 前端分页（每类各自分页）
+  const [incomePage, setIncomePage] = useState<number>(0);
+  const [incomePageSize, setIncomePageSize] = useState<number>(10);
+  const [expensePage, setExpensePage] = useState<number>(0);
+  const [expensePageSize, setExpensePageSize] = useState<number>(10);
 
   useEffect(() => {
     if (authLoading) return;
@@ -92,37 +100,26 @@ export default function FinancialReportPage() {
     return result;
   };
 
-  const computeCategoryStatsFrom = (list: FinancialRecord[], type: 'INCOME' | 'EXPENSE') => {
+  const computeCategoryStatsByTypeFrom = (list: FinancialRecord[], type: 'INCOME' | 'EXPENSE') => {
     const filtered = list.filter(r => r.categoryType === type);
-    const map = new Map<string, number>();
+    const map = new Map<number, { name: string; amount: number }>();
     filtered.forEach(r => {
-      map.set(r.categoryName, (map.get(r.categoryName) || 0) + r.amount);
+      const prev = map.get(r.categoryId) || { name: r.categoryName, amount: 0 };
+      map.set(r.categoryId, { name: prev.name || r.categoryName, amount: prev.amount + r.amount });
     });
-    const total = Array.from(map.values()).reduce((s, v) => s + v, 0) || 1;
-    const result = Array.from(map.entries()).map(([categoryName, amount]) => ({
-      categoryName,
-      amount,
-      percentage: Number(((amount / total) * 100).toFixed(2))
-    })).sort((a, b) => b.amount - a.amount).slice(0, 8);
+    const total = Array.from(map.values()).reduce((s, v) => s + v.amount, 0) || 1;
+    const result = Array.from(map.entries()).map(([categoryId, v]) => ({
+      categoryId: Number(categoryId),
+      categoryName: v.name,
+      amount: v.amount,
+      percentage: Number(((v.amount / total) * 100).toFixed(2))
+    })).sort((a, b) => b.amount - a.amount);
     return result;
   };
 
-  const computeCategoryStatsCombinedFrom = (list: FinancialRecord[]) => {
-    const map = new Map<string, { amount: number; categoryId?: number }>();
-    list.forEach(r => {
-      const key = r.categoryName;
-      const prev = map.get(key) || { amount: 0, categoryId: r.categoryId };
-      map.set(key, { amount: prev.amount + r.amount, categoryId: prev.categoryId ?? r.categoryId });
-    });
-    const total = Array.from(map.values()).reduce((s, v) => s + v.amount, 0) || 1;
-    const result = Array.from(map.entries()).map(([categoryName, v]) => ({
-      categoryId: Number(v.categoryId ?? 0),
-      categoryName,
-      amount: v.amount,
-      percentage: Number(((v.amount / total) * 100).toFixed(2))
-    })).sort((a, b) => b.amount - a.amount).slice(0, 12);
-    return result;
-  };
+  // 根据后端新结构，前端兜底分别计算收入/支出分类统计（不截断）
+  const computeCategoryIncomeStatsFrom = (list: FinancialRecord[]) => computeCategoryStatsByTypeFrom(list, 'INCOME');
+  const computeCategoryExpenseStatsFrom = (list: FinancialRecord[]) => computeCategoryStatsByTypeFrom(list, 'EXPENSE');
 
   const loadReport = async () => {
     setStatsLoading(true);
@@ -187,23 +184,49 @@ export default function FinancialReportPage() {
         setMonthlyStats(computeMonthlyStatsFrom(list));
       }
 
-      // 分类统计（不传 type，返回同时包含收入/支出，带 categoryId，可点击）
+      // 分类统计：支持 ALL/INCOME/EXPENSE，渲染收入与支出分栏
       try {
-        const resp = await api.financialRecords.categoryStatistics({ startDate: start, endDate: end });
-        const data = Array.isArray(resp.data) ? resp.data : resp.data?.data;
-        const list = (data || []).map((c: any) => ({
+        const params = categoryType === 'ALL'
+          ? { startDate: start, endDate: end }
+          : { startDate: start, endDate: end, type: categoryType };
+        const resp = await api.financialRecords.categoryStatistics(params);
+        const payload = Array.isArray(resp.data) ? resp.data : (resp.data?.data ?? resp.data);
+
+        // 新接口结构：{ incomeStatistics: [...], expenseStatistics: [...] }
+        const incomeRaw = (payload && typeof payload === 'object' && 'incomeStatistics' in payload)
+          ? (payload as any).incomeStatistics
+          : (Array.isArray(payload) && categoryType === 'INCOME') ? payload : [];
+        const expenseRaw = (payload && typeof payload === 'object' && 'expenseStatistics' in payload)
+          ? (payload as any).expenseStatistics
+          : (Array.isArray(payload) && categoryType === 'EXPENSE') ? payload : [];
+
+        const incomeList = (incomeRaw || []).map((c: any) => ({
           categoryId: Number(c.categoryId ?? 0),
           categoryName: c.categoryName ?? '',
-          amount: Number(c.totalAmount ?? c.amount ?? 0),
+          amount: Number(c.amount ?? c.totalAmount ?? 0),
           percentage: Number(c.percentage ?? 0),
-          categoryType: (c.categoryType ?? c.type) as ('INCOME' | 'EXPENSE' | undefined),
         }));
-        setCategoryStats(list.length ? list.slice(0, 12) : []);
+        const expenseList = (expenseRaw || []).map((c: any) => ({
+          categoryId: Number(c.categoryId ?? 0),
+          categoryName: c.categoryName ?? '',
+          amount: Number(c.amount ?? c.totalAmount ?? 0),
+          percentage: Number(c.percentage ?? 0),
+        }));
+
+        setCategoryIncomeStats(incomeList);
+        setCategoryExpenseStats(expenseList);
+
+        // 数据变更时重置分页
+        setIncomePage(0);
+        setExpensePage(0);
       } catch {
-        const recentResp = await api.financialRecords.recent(50);
+        const recentResp = await api.financialRecords.recent(100);
         const data = Array.isArray(recentResp.data) ? recentResp.data : recentResp.data?.data;
         const list = mapRecords(data || []);
-        setCategoryStats(computeCategoryStatsCombinedFrom(list));
+        setCategoryIncomeStats(computeCategoryIncomeStatsFrom(list));
+        setCategoryExpenseStats(computeCategoryExpenseStatsFrom(list));
+        setIncomePage(0);
+        setExpensePage(0);
       }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '加载报告失败';
@@ -240,9 +263,10 @@ export default function FinancialReportPage() {
             </div>
             <div>
               <label className="block text-sm text-gray-700 mb-1">类型</label>
-              <Select value={categoryType} onChange={(e) => setCategoryType(e.target.value as 'INCOME' | 'EXPENSE')}>
-                <option value="EXPENSE">支出</option>
+              <Select value={categoryType} onChange={(e) => setCategoryType(e.target.value as 'ALL' | 'INCOME' | 'EXPENSE')}>
+                <option value="ALL">全部</option>
                 <option value="INCOME">收入</option>
+                <option value="EXPENSE">支出</option>
               </Select>
             </div>
             <div className="flex gap-2 md:col-span-2">
@@ -323,19 +347,67 @@ export default function FinancialReportPage() {
           )}
         </div>
 
-        {/* 分类统计 */}
+        {/* 分类统计（收入/支出分栏，前端分页，每页10条可调） */}
         <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">分类统计（Top 12）</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">分类统计</h3>
           {statsLoading ? (
             <LoadingSpinner text="加载分类统计..." />
-          ) : categoryStats.length === 0 ? (
-            <p className="text-gray-500">暂无分类统计</p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {categoryStats.map(cs => (
-                <CategoryStatCard key={cs.categoryId || cs.categoryName} stat={cs} />
-              ))}
-            </div>
+            <>
+              {(categoryType === 'ALL' || categoryType === 'INCOME') && (
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-md font-semibold text-gray-800">收入分类</h4>
+                  </div>
+                  {categoryIncomeStats.length === 0 ? (
+                    <p className="text-gray-500">暂无收入分类统计</p>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {categoryIncomeStats.slice(incomePage * incomePageSize, incomePage * incomePageSize + incomePageSize).map(cs => (
+                          <CategoryStatCard key={`income-${cs.categoryId || cs.categoryName}`} stat={cs} type="INCOME" />
+                        ))}
+                      </div>
+                      <Pagination
+                        page={incomePage}
+                        pageSize={incomePageSize}
+                        totalPages={Math.max(Math.ceil((categoryIncomeStats.length || 0) / (incomePageSize || 10)), 1)}
+                        totalElements={categoryIncomeStats.length}
+                        onPageChange={(p) => setIncomePage(p)}
+                        onPageSizeChange={(sz) => { setIncomePageSize(sz); setIncomePage(0); }}
+                      />
+                    </>
+                  )}
+                </div>
+              )}
+
+              {(categoryType === 'ALL' || categoryType === 'EXPENSE') && (
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-md font-semibold text-gray-800">支出分类</h4>
+                  </div>
+                  {categoryExpenseStats.length === 0 ? (
+                    <p className="text-gray-500">暂无支出分类统计</p>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {categoryExpenseStats.slice(expensePage * expensePageSize, expensePage * expensePageSize + expensePageSize).map(cs => (
+                          <CategoryStatCard key={`expense-${cs.categoryId || cs.categoryName}`} stat={cs} type="EXPENSE" />
+                        ))}
+                      </div>
+                      <Pagination
+                        page={expensePage}
+                        pageSize={expensePageSize}
+                        totalPages={Math.max(Math.ceil((categoryExpenseStats.length || 0) / (expensePageSize || 10)), 1)}
+                        totalElements={categoryExpenseStats.length}
+                        onPageChange={(p) => setExpensePage(p)}
+                        onPageSizeChange={(sz) => { setExpensePageSize(sz); setExpensePage(0); }}
+                      />
+                    </>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -360,7 +432,7 @@ export default function FinancialReportPage() {
 }
 
 // 可点击的分类统计卡片，点击跳转到分类分页明细
-function CategoryStatCard({ stat }: { stat: { categoryId: number; categoryName: string; amount: number; percentage: number; categoryType?: 'INCOME' | 'EXPENSE' } }) {
+function CategoryStatCard({ stat, type }: { stat: { categoryId: number; categoryName: string; amount: number; percentage: number }; type: 'INCOME' | 'EXPENSE' }) {
   const router = useRouter();
   const handleClick = () => {
     if (!stat.categoryId) return;
@@ -370,9 +442,7 @@ function CategoryStatCard({ stat }: { stat: { categoryId: number; categoryName: 
     <button type="button" onClick={handleClick} className="border rounded-lg p-3 bg-white text-left hover:bg-gray-50">
       <div className="flex justify-between items-center">
         <span className="font-medium text-gray-900">{stat.categoryName}</span>
-        <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700">
-          {stat.categoryType === 'INCOME' ? '收入' : stat.categoryType === 'EXPENSE' ? '支出' : '分类'}
-        </span>
+        <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700">{type === 'INCOME' ? '收入' : '支出'}</span>
       </div>
       <div className="text-sm text-gray-600 mt-1">占比 {stat.percentage.toFixed(2)}%</div>
       <div className="text-sm text-gray-600 mt-1">金额 ¥{stat.amount.toFixed(2)}</div>

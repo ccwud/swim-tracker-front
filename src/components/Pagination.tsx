@@ -22,7 +22,7 @@ export default function Pagination({
   const canNext = page + 1 < totalPages
 
   return (
-    <div className="flex items-center justify-between mt-4">
+    <div className="mt-4 p-3 rounded-lg border-gradient-soft flex items-center justify-between">
       <div className="flex items-center gap-2">
         <Button
           type="button"
@@ -45,7 +45,7 @@ export default function Pagination({
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-600">每页</span>
           <select
-            className="border rounded px-2 py-1 text-sm"
+            className="select"
             value={pageSize}
             onChange={(e) => onPageSizeChange(Number(e.target.value))}
           >

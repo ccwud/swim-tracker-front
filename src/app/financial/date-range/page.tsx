@@ -113,30 +113,36 @@ export default function FinancialDateRangePage() {
         {loading ? (
           <LoadingSpinner text="加载数据..." />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full bg-white border border-gray-200">
-              <thead className="bg-gray-50">
+          <div className="overflow-x-auto table-container border-gradient-soft">
+            <table className="table">
+              <thead>
                 <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">日期</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">分类</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">类型</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">金额</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">描述</th>
+                  <th>日期</th>
+                  <th>分类</th>
+                  <th>类型</th>
+                  <th>金额</th>
+                  <th>描述</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody>
                 {items.map(item => (
-                  <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-2 text-sm text-gray-900">{item.recordDate}</td>
-                    <td className="px-4 py-2 text-sm text-gray-900">{item.categoryName}</td>
-                    <td className="px-4 py-2 text-sm text-gray-900">{item.categoryType === 'INCOME' ? '收入' : '支出'}</td>
-                    <td className="px-4 py-2 text-sm text-gray-900">¥{item.amount.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-sm text-gray-600">{item.description || '-'}</td>
+                  <tr key={item.id}>
+                    <td className="text-sm">{item.recordDate}</td>
+                    <td className="text-sm">{item.categoryName}</td>
+                    <td className="text-sm">
+                      <span className={`badge ${item.categoryType === 'INCOME' ? 'badge--income' : 'badge--expense'}`}>
+                        {item.categoryType === 'INCOME' ? '收入' : '支出'}
+                      </span>
+                    </td>
+                    <td className="text-sm">
+                      <span className={`amount ${item.categoryType === 'INCOME' ? 'amount--income' : 'amount--expense'}`}>¥{item.amount.toFixed(2)}</span>
+                    </td>
+                    <td className="text-sm text-gray-600">{item.description || '-'}</td>
                   </tr>
                 ))}
                 {items.length === 0 && (
                   <tr>
-                    <td className="px-4 py-6 text-center text-gray-500" colSpan={5}>暂无数据</td>
+                    <td className="table__empty" colSpan={5}>暂无数据</td>
                   </tr>
                 )}
               </tbody>
