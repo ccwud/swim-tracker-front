@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth'
 import Button from '@/components/Button'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
+import Textarea from '@/components/Textarea'
 
 // 分类类型
 type CategoryType = 'INCOME' | 'EXPENSE'
@@ -406,10 +407,10 @@ export default function CategoryManagementPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">描述</label>
-                    <textarea
+                    <Textarea
                       value={formData.description}
                       onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      fullWidth
                       placeholder="最多200字符"
                       maxLength={200}
                     />

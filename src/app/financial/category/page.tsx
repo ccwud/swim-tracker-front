@@ -8,6 +8,7 @@ import ErrorMessage from '@/components/ErrorMessage'
 import Pagination from '@/components/Pagination'
 import Button from '@/components/Button'
 import { api } from '@/lib/api'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 
 interface FinancialRecordItem {
   id: number
@@ -112,39 +113,39 @@ export default function FinancialCategoryDetailPage() {
           <LoadingSpinner text="加载数据..." />
         ) : (
           <div className="overflow-x-auto table-container border-gradient-soft">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>日期</th>
-                  <th>分类</th>
-                  <th>类型</th>
-                  <th>金额</th>
-                  <th>描述</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table className="table min-w-full">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>日期</TableHead>
+                  <TableHead>分类</TableHead>
+                  <TableHead>类型</TableHead>
+                  <TableHead>金额</TableHead>
+                  <TableHead>描述</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {items.map(item => (
-                  <tr key={item.id}>
-                    <td className="text-sm">{item.recordDate}</td>
-                    <td className="text-sm">{item.categoryName}</td>
-                    <td className="text-sm">
+                  <TableRow key={item.id}>
+                    <TableCell className="text-sm">{item.recordDate}</TableCell>
+                    <TableCell className="text-sm">{item.categoryName}</TableCell>
+                    <TableCell className="text-sm">
                       <span className={`badge ${item.categoryType === 'INCOME' ? 'badge--income' : 'badge--expense'}`}>
                         {item.categoryType === 'INCOME' ? '收入' : '支出'}
                       </span>
-                    </td>
-                    <td className="text-sm">
+                    </TableCell>
+                    <TableCell className="text-sm">
                       <span className={`amount ${item.categoryType === 'INCOME' ? 'amount--income' : 'amount--expense'}`}>¥{item.amount.toFixed(2)}</span>
-                    </td>
-                    <td className="text-sm text-gray-600">{item.description || '-'}</td>
-                  </tr>
+                    </TableCell>
+                    <TableCell className="text-sm text-gray-600">{item.description || '-'}</TableCell>
+                  </TableRow>
                 ))}
                 {items.length === 0 && (
-                  <tr>
-                    <td className="table__empty" colSpan={5}>暂无数据</td>
-                  </tr>
+                  <TableRow>
+                    <TableCell className="table__empty" colSpan={5}>暂无数据</TableCell>
+                  </TableRow>
                 )}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
 
             <Pagination
               page={page}

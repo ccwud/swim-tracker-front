@@ -43,6 +43,25 @@
   --color-foreground: var(--color-text-primary);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  /* shadcn/ui compatible color tokens */
+  --color-card: var(--color-bg-secondary);
+  --color-card-foreground: var(--color-text-primary);
+  --color-popover: var(--color-bg-secondary);
+  --color-popover-foreground: var(--color-text-primary);
+  --color-primary: #6366f1; /* indigo-500 */
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f1f5f9; /* slate-100 */
+  --color-secondary-foreground: var(--color-text-primary);
+  --color-muted: #f1f5f9; /* slate-100 */
+  --color-muted-foreground: var(--color-text-muted);
+  --color-accent: #a855f7; /* violet-500 */
+  --color-accent-foreground: #ffffff;
+  --color-destructive: #ef4444; /* red-500 */
+  --color-destructive-foreground: #ffffff;
+  --color-border: rgba(100, 116, 139, 0.35);
+  --color-input: rgba(100, 116, 139, 0.35);
+  --color-ring: #6366f1; /* indigo-500 */
+  --radius: 8px;
 }
 
 /* Dark scheme overrides */

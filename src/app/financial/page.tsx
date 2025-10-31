@@ -525,6 +525,9 @@ export default function FinancialPage() {
                   value={filters.categoryId}
                   onChange={(e) => setFilters(prev => ({ ...prev, categoryId: e.target.value }))}
                   fullWidth
+                  searchable
+                  searchPlaceholder="搜索分类..."
+                  noResultsText="无匹配分类"
                 >
                   <option value="">全部</option>
                   {categories.map((c) => (
@@ -644,6 +647,9 @@ export default function FinancialPage() {
                     }}
                     fullWidth
                     required
+                    searchable
+                    searchPlaceholder="搜索分类..."
+                    noResultsText="无匹配分类"
                   >
                     <option value="">请选择分类</option>
                     {categories.map(category => (
