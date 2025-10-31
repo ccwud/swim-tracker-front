@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
+import { DatePicker } from '@/components/ui/date-picker';
 import Select from '@/components/Select';
 import AddCategoryModal from '@/components/AddCategoryModal';
 import ImportBillsModal from '@/components/ImportBillsModal';
@@ -503,20 +504,18 @@ export default function FinancialPage() {
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">开始日期</label>
-                <Input
-                   type="date"
-                   value={filters.startDate}
-                   onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
-                   fullWidth
+                <DatePicker
+                  value={filters.startDate}
+                  onChange={(v) => setFilters(prev => ({ ...prev, startDate: v }))}
+                  className="w-full"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">结束日期</label>
-                <Input
-                   type="date"
-                   value={filters.endDate}
-                   onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
-                   fullWidth
+                <DatePicker
+                  value={filters.endDate}
+                  onChange={(v) => setFilters(prev => ({ ...prev, endDate: v }))}
+                  className="w-full"
                 />
               </div>
               <div>
@@ -571,15 +570,15 @@ export default function FinancialPage() {
               <LoadingSpinner text="计算统计中..." />
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 rounded-lg bg-green-50 border">
+                <div className="p-4 rounded-lg bg-green-50 border shadow-sm transition duration-150 ease-out hover:-translate-y-[1px] hover:shadow-md">
                   <div className="text-sm text-gray-600">收入</div>
                   <div className="text-2xl font-bold text-green-700">¥{stats.income.toFixed(2)}</div>
                 </div>
-                <div className="p-4 rounded-lg bg-red-50 border">
+                <div className="p-4 rounded-lg bg-red-50 border shadow-sm transition duration-150 ease-out hover:-translate-y-[1px] hover:shadow-md">
                   <div className="text-sm text-gray-600">支出</div>
                   <div className="text-2xl font-bold text-red-700">¥{stats.expense.toFixed(2)}</div>
                 </div>
-                <div className="p-4 rounded-lg bg-blue-50 border">
+                <div className="p-4 rounded-lg bg-blue-50 border shadow-sm transition duration-150 ease-out hover:-translate-y-[1px] hover:shadow-md">
                   <div className="text-sm text-gray-600">净值</div>
                   <div className="text-2xl font-bold text-blue-700">¥{stats.net.toFixed(2)}</div>
                 </div>
@@ -597,7 +596,7 @@ export default function FinancialPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {categoryStats.map(cs => (
-                  <div key={cs.categoryId} className="border rounded-lg p-3 bg-gray-50">
+                  <div key={cs.categoryId} className="border rounded-lg p-3 bg-gray-50 shadow-sm transition duration-150 ease-out hover:-translate-y-[1px] hover:shadow-md hover:bg-gray-100">
                     <div className="flex justify-between items-center">
                       <span className="font-medium text-gray-900">{cs.categoryName}</span>
                       <span className={`text-sm ${cs.net >= 0 ? 'text-green-700' : 'text-red-700'}`}>净值 ¥{cs.net.toFixed(2)}</span>
@@ -619,7 +618,7 @@ export default function FinancialPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {monthlyStats.map(ms => (
-                  <div key={ms.month} className="border rounded-lg p-3 bg-gray-50">
+                  <div key={ms.month} className="border rounded-lg p-3 bg-gray-50 shadow-sm transition duration-150 ease-out hover:-translate-y-[1px] hover:shadow-md hover:bg-gray-100">
                     <div className="font-medium text-gray-900">{ms.month}</div>
                     <div className="text-sm text-gray-600 mt-1">收入 ¥{ms.income.toFixed(2)} | 支出 ¥{ms.expense.toFixed(2)}</div>
                     <div className={`text-sm mt-1 ${ms.net >= 0 ? 'text-green-700' : 'text-red-700'}`}>净值 ¥{ms.net.toFixed(2)}</div>
@@ -653,8 +652,14 @@ export default function FinancialPage() {
                   >
                     <option value="">请选择分类</option>
                     {categories.map(category => (
-                      <option key={category.id} value={category.id}>
-                        {category.name} ({category.type === 'INCOME' ? '收入' : '支出'})
+                      <option
+                        key={category.id}
+                        value={category.id}
+                        data-icon={category.iconName}
+                        data-color={category.colorCode}
+                        data-label={`${category.name} (${category.type === 'INCOME' ? '收入' : '支出'})`}
+                      >
+                        {`${category.name} (${category.type === 'INCOME' ? '收入' : '支出'})`}
                       </option>
                     ))}
                     <option value="__add__">＋ 新建分类...</option>

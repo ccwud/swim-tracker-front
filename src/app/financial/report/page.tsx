@@ -7,8 +7,10 @@ import ErrorMessage from '@/components/ErrorMessage';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
 import { useRouter } from 'next/navigation';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
+import { DatePicker } from '@/components/ui/date-picker';
 import Select from '@/components/Select';
 import Pagination from '@/components/Pagination';
 
@@ -255,11 +257,11 @@ export default function FinancialReportPage() {
           <div className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
             <div>
               <label className="block text-sm text-gray-700 mb-1">开始日期</label>
-              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <DatePicker value={startDate} onChange={(v) => setStartDate(v)} />
             </div>
             <div>
               <label className="block text-sm text-gray-700 mb-1">结束日期</label>
-              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              <DatePicker value={endDate} onChange={(v) => setEndDate(v)} />
             </div>
             <div>
               <label className="block text-sm text-gray-700 mb-1">类型</label>
@@ -439,14 +441,24 @@ function CategoryStatCard({ stat, type }: { stat: { categoryId: number; category
     router.push(`/financial/category?id=${stat.categoryId}&categoryName=${encodeURIComponent(stat.categoryName)}`);
   };
   return (
-    <button type="button" onClick={handleClick} className="border rounded-lg p-3 bg-white text-left hover:bg-gray-50">
-      <div className="flex justify-between items-center">
-        <span className="font-medium text-gray-900">{stat.categoryName}</span>
-        <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700">{type === 'INCOME' ? '收入' : '支出'}</span>
-      </div>
-      <div className="text-sm text-gray-600 mt-1">占比 {stat.percentage.toFixed(2)}%</div>
-      <div className="text-sm text-gray-600 mt-1">金额 ¥{stat.amount.toFixed(2)}</div>
-    </button>
+    <Card
+      role="button"
+      tabIndex={0}
+      onClick={handleClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleClick(); }}
+      className="cursor-pointer select-none bg-white text-left transition duration-150 ease-out hover:-translate-y-[1px] hover:bg-gray-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+    >
+      <CardHeader className="p-3">
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-base font-medium text-gray-900">{stat.categoryName}</CardTitle>
+          <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700">{type === 'INCOME' ? '收入' : '支出'}</span>
+        </div>
+      </CardHeader>
+      <CardContent className="p-3 pt-0">
+        <div className="text-sm text-gray-600 mt-1">占比 {stat.percentage.toFixed(2)}%</div>
+        <div className="text-sm text-gray-600 mt-1">金额 ¥{stat.amount.toFixed(2)}</div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -495,13 +507,21 @@ function MonthStatCard({ stat }: { stat: { month: string; totalIncome: number; t
   };
 
   return (
-    <button type="button" onClick={handleClick} className="border rounded-lg p-3 bg-gray-50 text-left hover:bg-gray-100">
-      <div className="font-medium text-gray-900">{stat.month}</div>
-      <div className="text-sm text-gray-600 mt-1">收入 ¥{stat.totalIncome.toFixed(2)} | 支出 ¥{stat.totalExpense.toFixed(2)}</div>
-      <div className={`text-sm mt-1 ${stat.netAmount >= 0 ? 'text-green-700' : 'text-red-700'}`}>净值 ¥{stat.netAmount.toFixed(2)}</div>
-      {typeof stat.recordCount === 'number' && (
-        <div className="text-xs text-gray-500 mt-1">记录数 {stat.recordCount}</div>
-      )}
-    </button>
+    <Card
+      role="button"
+      tabIndex={0}
+      onClick={handleClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleClick(); }}
+      className="cursor-pointer select-none bg-gray-50 text-left transition duration-150 ease-out hover:-translate-y-[1px] hover:bg-gray-100 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+    >
+      <CardContent className="p-3">
+        <div className="font-medium text-gray-900">{stat.month}</div>
+        <div className="text-sm text-gray-600 mt-1">收入 ¥{stat.totalIncome.toFixed(2)} | 支出 ¥{stat.totalExpense.toFixed(2)}</div>
+        <div className={`text-sm mt-1 ${stat.netAmount >= 0 ? 'text-green-700' : 'text-red-700'}`}>净值 ¥{stat.netAmount.toFixed(2)}</div>
+        {typeof stat.recordCount === 'number' && (
+          <div className="text-xs text-gray-500 mt-1">记录数 {stat.recordCount}</div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

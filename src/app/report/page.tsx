@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -31,7 +31,8 @@ export default function Report() {
     }
   }, [user, authLoading, router]);
 
-  const fetchReport = async () => {
+
+  const fetchReport = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -73,9 +74,12 @@ export default function Report() {
         interface StatData {
           totalRecords?: number;
           totalDistance?: number;
+          averageDistance?: number;
           year?: number;
           week?: number;
           month?: number;
+          weekStartDate?: string;
+          weekEndDate?: string;
         }
         
         const stats = Array.isArray(response.data) ? response.data as StatData[] : [response.data as StatData];
@@ -92,9 +96,9 @@ export default function Report() {
           },
           records: [],
           weeklyReports: reportType === 'weekly' ? stats.map((stat: StatData) => ({
-            week: `${stat.year}年第${stat.week}周`,
-            weekStart: '',
-            weekEnd: '',
+            week: `${stat.year ?? ''}年第${stat.week ?? ''}周`,
+            weekStart: stat.weekStartDate ?? '',
+            weekEnd: stat.weekEndDate ?? '',
             sessions: stat.totalRecords || 0,
             totalMeters: stat.totalDistance || 0
           })) : [],
@@ -132,7 +136,14 @@ export default function Report() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [reportType]);
+
+  // 报告类型变化或页面进入时，自动查询（默认月报）
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+    void fetchReport();
+  }, [authLoading, user, fetchReport]);
 
   const handleReportTypeChange = (type: ReportType) => {
     setReportType(type);
@@ -173,7 +184,10 @@ export default function Report() {
           <TableHeader className="bg-gray-50">
             <TableRow>
               <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                周期
+                周次
+              </TableHead>
+              <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                日期范围
               </TableHead>
               <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 打卡次数
@@ -189,6 +203,9 @@ export default function Report() {
           <TableBody className="divide-y divide-gray-200">
             {weeklyData.map((week, index) => (
               <TableRow key={index} className="hover:bg-gray-50">
+                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {week.week}
+                </TableCell>
                 <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {week.weekStart} 至 {week.weekEnd}
                 </TableCell>
@@ -331,14 +348,6 @@ export default function Report() {
               全部记录
             </Button>
           </div>
-          <Button
-            onClick={fetchReport}
-            disabled={loading}
-            variant="primary"
-            className="text-sm"
-          >
-            {loading ? '加载中...' : '查看报告'}
-          </Button>
         </div>
 
         {/* 错误信息 */}

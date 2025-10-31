@@ -55,7 +55,18 @@ export default function Select({
   const [query, setQuery] = React.useState('')
   const filtered = searchable
     ? options.filter((opt) => {
-        const label = String(opt.props.children ?? '')
+        // 当 option children 为复杂节点时，从 data-label 或 label 属性提取纯文本用于搜索
+        const propsAny = opt.props as Record<string, unknown>
+        const children = opt.props.children
+        const labelText =
+          typeof children === 'string'
+            ? children
+            : (typeof propsAny['data-label'] === 'string'
+                ? (propsAny['data-label'] as string)
+                : (typeof opt.props.label === 'string'
+                    ? opt.props.label
+                    : ''))
+        const label = String(labelText ?? '')
         const val = String(opt.props.value ?? '')
         const q = query.trim().toLowerCase()
         return label.toLowerCase().includes(q) || val.toLowerCase().includes(q)
@@ -114,9 +125,36 @@ export default function Select({
           const rawVal = opt.props.value ?? String(opt.props.children ?? '')
           const valStr = String(rawVal)
           const itemValue = valStr.length === 0 ? EMPTY_VALUE_SENTINEL : valStr
+
+          // 提取数据属性：图标与颜色；兼容 children 为纯文本或复杂节点
+          const propsAny = opt.props as Record<string, unknown>
+          const children = opt.props.children
+          const displayLabel =
+            typeof children === 'string'
+              ? children
+              : (typeof propsAny['data-label'] === 'string'
+                  ? (propsAny['data-label'] as string)
+                  : (typeof opt.props.label === 'string'
+                      ? opt.props.label
+                      : ''))
+          const icon = typeof propsAny['data-icon'] === 'string' ? (propsAny['data-icon'] as string) : undefined
+          const color = typeof propsAny['data-color'] === 'string' ? (propsAny['data-color'] as string) : undefined
+
           return (
             <SelectItem key={idx} value={itemValue} disabled={!!opt.props.disabled}>
-              {opt.props.children}
+              <span className="inline-flex items-center gap-2">
+                {color ? (
+                  <span
+                    aria-hidden
+                    className="inline-block w-3 h-3 rounded-full border border-border"
+                    style={{ backgroundColor: color }}
+                  />
+                ) : null}
+                {icon ? (
+                  <span aria-hidden className="text-base leading-none">{icon}</span>
+                ) : null}
+                <span className="truncate">{displayLabel}</span>
+              </span>
             </SelectItem>
           )
         })}
