@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { api } from '@/lib/api';
 import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
@@ -12,6 +13,7 @@ import Input from '@/components/Input';
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [rounds, setRounds] = useState<number>(0);
   const [roundMeters, setRoundMeters] = useState<number>(27);
   const [loading, setLoading] = useState(false);
@@ -22,12 +24,13 @@ export default function Dashboard() {
     if (authLoading) return;
     
     if (!user) {
-      router.push('/login');
+      const next = pathname || '/dashboard';
+      router.push(`/login?next=${encodeURIComponent(next)}`);
       return;
     }
     
     fetchConfig();
-  }, [user, authLoading, router]);
+  }, [user, authLoading, router, pathname]);
 
   const fetchConfig = async () => {
     try {

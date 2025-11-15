@@ -34,8 +34,9 @@ interface FinancialRecord {
 }
 
 export default function FinancialPage() {
-  const { loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const pathname = '/financial';
   const [categories, setCategories] = useState<Category[]>([]);
   const [records, setRecords] = useState<FinancialRecord[]>([]);
   const [recordsLoading, setRecordsLoading] = useState(false);
@@ -62,10 +63,13 @@ export default function FinancialPage() {
 
   useEffect(() => {
     if (authLoading) return;
-    // 调试阶段不拦截登录，允许直接访问页面
+    if (!user) {
+      router.push(`/login?next=${encodeURIComponent(pathname)}`);
+      return;
+    }
     fetchCategories();
     fetchRecords();
-  }, [authLoading]);
+  }, [authLoading, user, router]);
 
   const mapRecords = (data: any[]): FinancialRecord[] => {
     return (data || []).map((r: any) => ({

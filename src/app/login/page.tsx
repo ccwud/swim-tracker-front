@@ -1,29 +1,31 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/hooks/useAuth'
 import Button from '@/components/Button'
+import LoadingSpinner from '@/components/LoadingSpinner'
 
-export default function LoginPage() {
+function LoginInner() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  
   const { login } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const next = searchParams.get('next')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
-
     try {
       const success = await login(username, password)
       if (success) {
-        router.push('/choice')
+        router.push(next || '/choice')
       } else {
         setError('用户名或密码错误')
       }
@@ -38,19 +40,13 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            登录您的账户
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Sol-Aqua
-          </p>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">登录您的账户</h2>
+          <p className="mt-2 text-center text-sm text-gray-600">Sol-Aqua</p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
-              <label htmlFor="username" className="sr-only">
-                用户名
-              </label>
+              <label htmlFor="username" className="sr-only">用户名</label>
               <input
                 id="username"
                 name="username"
@@ -63,9 +59,7 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <label htmlFor="password" className="sr-only">
-                密码
-              </label>
+              <label htmlFor="password" className="sr-only">密码</label>
               <input
                 id="password"
                 name="password"
@@ -78,41 +72,28 @@ export default function LoginPage() {
               />
             </div>
           </div>
-
-          {error && (
-            <div className="text-red-600 text-sm text-center">{error}</div>
-          )}
-
+          {error && <div className="text-red-600 text-sm text-center">{error}</div>}
           <div>
-            {/* Replaced hardcoded Tailwind button with design-system Button */}
-            <Button
-              type="submit"
-              disabled={loading}
-              fullWidth
-            >
+            <Button type="submit" disabled={loading} fullWidth>
               {loading ? '登录中...' : '登录'}
             </Button>
           </div>
-
           <div className="text-center">
-            <Link
-              href="/register"
-              className="font-medium text-blue-600 hover:text-blue-500"
-            >
-              没有账号？去注册
-            </Link>
+            <Link href="/register" className="font-medium text-blue-600 hover:text-blue-500">没有账号？去注册</Link>
           </div>
-          
           <div className="text-center">
-            <Link
-              href="/forgot-password"
-              className="font-medium text-blue-600 hover:text-blue-500"
-            >
-              忘记密码？
-            </Link>
+            <Link href="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">忘记密码？</Link>
           </div>
         </form>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoadingSpinner text="加载中..." />}> 
+      <LoginInner />
+    </Suspense>
   )
 }

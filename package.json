@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build --turbopack && cp _redirects out/ 2>/dev/null || copy _redirects out\\ 2>nul || true",
+    "dev": "next dev",
+    "build": "next build && copy _redirects out\\ 2>nul || cp _redirects out/ 2>/dev/null || true",
     "start": "next start",
     "lint": "eslint"
   },
