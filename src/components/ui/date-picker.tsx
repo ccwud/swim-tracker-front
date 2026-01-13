@@ -58,7 +58,11 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, placeho
         />
       </PopoverPrimitive.Trigger>
       <PopoverPrimitive.Portal>
-        <PopoverPrimitive.Content sideOffset={6} className="z-50 rounded-md border bg-popover text-popover-foreground shadow-md p-2" aria-label="选择日期">
+        <PopoverPrimitive.Content
+          sideOffset={6}
+          className="z-50 w-[calc(100vw-2rem)] sm:w-auto rounded-md border bg-popover text-popover-foreground shadow-md p-2"
+          aria-label="选择日期"
+        >
           <DayPicker
             mode="single"
             selected={selected}
@@ -73,10 +77,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, placeho
               nav: "flex items-center justify-between",
               table: "w-full border-collapse",
               head_row: "flex justify-between",
-              head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
+              head_cell: "text-muted-foreground rounded-md w-8 sm:w-9 font-normal text-[0.75rem] sm:text-[0.8rem]",
               row: "flex w-full mt-2",
-              cell: "h-9 w-9 text-center text-sm p-0 relative",
-              day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100",
+              cell: "h-8 sm:h-9 w-8 sm:w-9 text-center text-sm p-0 relative",
+              day: "h-8 sm:h-9 w-8 sm:w-9 p-0 font-normal text-sm aria-selected:opacity-100",
               day_selected: "bg-primary text-primary-foreground",
               day_today: "bg-accent text-accent-foreground",
               day_outside: "text-muted-foreground opacity-50",

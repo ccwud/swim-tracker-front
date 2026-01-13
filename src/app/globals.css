@@ -387,3 +387,40 @@ body {
 .amount--expense {
   color: #b91c1c; /* red-700 */
 }
+
+/* 移动端优化 */
+/* 确保触摸目标足够大（至少44x44px） */
+@media (max-width: 768px) {
+  input[type="number"],
+  input[type="date"],
+  input[type="text"],
+  .input,
+  .btn,
+  button {
+    min-height: 44px;
+  }
+
+  /* 优化文本大小，防止iOS自动缩放 */
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+
+  /* 减小移动端内边距 */
+  .topnav__container {
+    padding: var(--spacing-2) var(--spacing-4);
+  }
+
+  /* 优化日期选择器在移动端的显示 */
+  [role="dialog"] {
+    max-width: calc(100vw - 2rem);
+  }
+}
+
+/* 改善移动端滚动 */
+@media (max-width: 768px) {
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+}

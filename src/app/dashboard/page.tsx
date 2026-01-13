@@ -9,6 +9,7 @@ import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
+import { DatePicker } from '@/components/ui/date-picker';
 
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -102,31 +103,30 @@ export default function Dashboard() {
 
   return (
     <Layout showNavigation>
-      <div className="max-w-md mx-auto bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">游泳打卡</h2>
-        
+      <div className="w-full max-w-md mx-auto bg-white rounded-lg shadow-md p-4 sm:p-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 text-center">游泳打卡</h2>
+
         {message && (
-          <div className={`mb-4 p-3 rounded ${
-            message.type === 'success' 
-              ? 'bg-green-100 text-green-700 border border-green-200' 
+          <div className={`mb-4 p-3 rounded text-sm sm:text-base ${
+            message.type === 'success'
+              ? 'bg-green-100 text-green-700 border border-green-200'
               : 'bg-red-100 text-red-700 border border-red-200'
           }`}>
             {message.text}
           </div>
         )}
 
-        <form onSubmit={handlePunch} className="space-y-4">
+        <form onSubmit={handlePunch} className="space-y-3 sm:space-y-4">
           <div>
             <label htmlFor="recordDate" className="block text-sm font-medium text-gray-700 mb-2">
               游泳日期
             </label>
-            <Input
-              type="date"
+            <DatePicker
               id="recordDate"
               value={recordDate}
-              onChange={(e) => setRecordDate(e.target.value)}
-              fullWidth
-              required
+              onChange={setRecordDate}
+              placeholder="选择游泳日期"
+              className="w-full text-base"
             />
           </div>
 
@@ -143,6 +143,7 @@ export default function Dashboard() {
               fullWidth
               placeholder="请输入回合数"
               required
+              className="text-base"
             />
           </div>
 
@@ -159,6 +160,7 @@ export default function Dashboard() {
               fullWidth
               placeholder="请输入回合长度"
               required
+              className="text-base"
             />
           </div>
 
@@ -171,6 +173,7 @@ export default function Dashboard() {
               value={`${rounds * roundMeters} 米`}
               readOnly
               fullWidth
+              className="text-base"
             />
           </div>
 
@@ -179,6 +182,7 @@ export default function Dashboard() {
             disabled={loading || rounds <= 0 || roundMeters <= 0}
             fullWidth
             variant="primary"
+            className="mt-4 text-base py-3 sm:py-2"
           >
             {loading ? '打卡中...' : '打卡'}
           </Button>
