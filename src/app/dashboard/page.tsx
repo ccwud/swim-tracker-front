@@ -118,11 +118,10 @@ export default function Dashboard() {
 
         <form onSubmit={handlePunch} className="space-y-3 sm:space-y-4">
           <div>
-            <label htmlFor="recordDate" className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               游泳日期
             </label>
             <DatePicker
-              id="recordDate"
               value={recordDate}
               onChange={setRecordDate}
               placeholder="选择游泳日期"
