@@ -16,6 +16,7 @@ export default function Dashboard() {
   const pathname = usePathname();
   const [rounds, setRounds] = useState<number>(0);
   const [roundMeters, setRoundMeters] = useState<number>(27);
+  const [recordDate, setRecordDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(false);
   const [configLoading, setConfigLoading] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -62,10 +63,11 @@ export default function Dashboard() {
     setMessage(null);
 
     try {
-      // 根据API文档，使用新的打卡接口
+      // 根据API文档，使用新的打卡接口，传入指定日期
       const response = await api.punchIn({
         rounds,
-        roundLengthMeters: roundMeters
+        roundLengthMeters: roundMeters,
+        recordDate
       });
       
       // 根据API文档，成功响应包含记录详情
@@ -114,6 +116,20 @@ export default function Dashboard() {
         )}
 
         <form onSubmit={handlePunch} className="space-y-4">
+          <div>
+            <label htmlFor="recordDate" className="block text-sm font-medium text-gray-700 mb-2">
+              游泳日期
+            </label>
+            <Input
+              type="date"
+              id="recordDate"
+              value={recordDate}
+              onChange={(e) => setRecordDate(e.target.value)}
+              fullWidth
+              required
+            />
+          </div>
+
           <div>
             <label htmlFor="rounds" className="block text-sm font-medium text-gray-700 mb-2">
               输入您完成的回合数

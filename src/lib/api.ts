@@ -78,7 +78,7 @@ export const authAPI = {
 // 游泳记录管理 API
 export const swimmingAPI = {
   // 游泳打卡
-  punchIn: (data: { rounds: number; roundLengthMeters: number }) =>
+  punchIn: (data: { rounds: number; roundLengthMeters: number; recordDate?: string }) =>
     apiClient.post('/swimming/punch-in', data),
   
   // 获取所有游泳记录
